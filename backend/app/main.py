@@ -8,7 +8,9 @@ from fastapi.staticfiles import StaticFiles
 from sqlmodel import SQLModel
 
 from app.api import admin, matches, players, rankings
+from app.config import settings
 from app.database import engine
+from fastapi_cache import FastAPICache
 
 
 @asynccontextmanager
@@ -16,6 +18,28 @@ async def lifespan(app: FastAPI):
     # Ensure DB tables exist on startup (especially for SQLite local dev)
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
+
+    # Initialize Cache
+    if settings.REDIS_URL:
+        try:
+            import redis.asyncio as aioredis
+            from fastapi_cache.backends.redis import RedisBackend
+            redis_client = aioredis.from_url(
+                settings.REDIS_URL, encoding="utf8", decode_responses=True
+            )
+            # Ping Redis to verify connection
+            await redis_client.ping()
+            FastAPICache.init(RedisBackend(redis_client), prefix="quaveo-chess-cache")
+            print("FastAPICache initialized with Redis backend.")
+        except Exception as e:
+            print(f"Failed to connect to Redis: {e}. Falling back to InMemoryBackend.")
+            from fastapi_cache.backends.inmemory import InMemoryBackend
+            FastAPICache.init(InMemoryBackend(), prefix="quaveo-chess-cache")
+    else:
+        from fastapi_cache.backends.inmemory import InMemoryBackend
+        FastAPICache.init(InMemoryBackend(), prefix="quaveo-chess-cache")
+        print("FastAPICache initialized with InMemory backend.")
+
     yield
 
 

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi_cache import FastAPICache
 from sqlmodel import delete, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -27,6 +28,11 @@ from app.schemas import (
 from app.services.elo import recalculate_all_ratings
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
+
+
+async def clear_cache(namespace: str):
+    if FastAPICache._backend is not None:
+        await FastAPICache.clear(namespace=namespace)
 
 
 @router.post("/login", response_model=AdminStatus)
@@ -123,6 +129,7 @@ async def create_player(
     db.add(player)
     await db.commit()
     await db.refresh(player)
+    await clear_cache("players")
     return player
 
 
@@ -150,6 +157,8 @@ async def update_player(
     db.add(player)
     await db.commit()
     await db.refresh(player)
+    await clear_cache("players")
+    await clear_cache("rankings")
     return player
 
 
@@ -191,6 +200,10 @@ async def delete_player(
 
     # 6. Recalculate Elo ratings for remaining players
     await recalculate_all_ratings(db)
+
+    await clear_cache("players")
+    await clear_cache("rankings")
+    await clear_cache("matches")
 
     return {"message": f"Player '{player.display_name}' deleted"}
 
@@ -241,7 +254,10 @@ async def create_match(
     if is_completed:
         await recalculate_all_ratings(db)
         await db.refresh(match)
+        await clear_cache("rankings")
+        await clear_cache("players")
 
+    await clear_cache("matches")
     return await format_match_read(match, db)
 
 
@@ -298,7 +314,10 @@ async def update_match(
 
     if match.status == MatchStatus.COMPLETED:
         await recalculate_all_ratings(db)
+        await clear_cache("rankings")
+        await clear_cache("players")
 
+    await clear_cache("matches")
     return await format_match_read(match, db)
 
 
@@ -329,6 +348,10 @@ async def record_match_result(
     await recalculate_all_ratings(db)
     await db.refresh(match)
 
+    await clear_cache("matches")
+    await clear_cache("rankings")
+    await clear_cache("players")
+
     return await format_match_read(match, db)
 
 
@@ -354,6 +377,9 @@ async def cancel_match(
 
     if was_completed:
         await recalculate_all_ratings(db)
+        await clear_cache("rankings")
+        await clear_cache("players")
 
     await db.refresh(match)
+    await clear_cache("matches")
     return await format_match_read(match, db)

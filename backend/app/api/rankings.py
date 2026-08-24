@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from fastapi_cache.decorator import cache
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -11,6 +12,7 @@ router = APIRouter(prefix="/api/rankings", tags=["rankings"])
 
 
 @router.get("", response_model=list[LeaderboardEntry])
+@cache(namespace="rankings", expire=3600)
 async def get_rankings(
     game_type: GameType = GameType.BLITZ,
     db: AsyncSession = Depends(get_db),

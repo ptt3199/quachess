@@ -10,6 +10,7 @@ import { SchedulePage } from './pages/SchedulePage';
 import { PlayerDetailPage } from './pages/PlayerDetailPage';
 import { AdminLoginPage } from './pages/AdminLoginPage';
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
+import { PwaUpdatePrompt } from './components/PwaUpdatePrompt';
 
 export function App() {
   const [adminStatus, setAdminStatus] = useState<AdminStatus | null>(null);
@@ -97,6 +98,7 @@ export function App() {
       </main>
 
       <MobileNav />
+      <PwaUpdatePrompt />
     </div>
   );
 }

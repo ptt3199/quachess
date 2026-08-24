@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi_cache.decorator import cache
 from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -70,6 +71,7 @@ async def format_match_read(match: Match, db: AsyncSession) -> MatchRead:
 
 
 @router.get("", response_model=list[PlayerRead])
+@cache(namespace="players", expire=600)
 async def list_players(
     active_only: bool = False,
     db: AsyncSession = Depends(get_db),
@@ -83,6 +85,7 @@ async def list_players(
 
 
 @router.get("/{player_id}/matches", response_model=list[MatchRead])
+@cache(namespace="players", expire=300)
 async def list_player_matches(
     player_id: str,
     game_type: GameType | None = None,
@@ -106,6 +109,7 @@ async def list_player_matches(
     "/{player_id}/rating-history",
     response_model=list[RatingHistoryRead],
 )
+@cache(namespace="players", expire=300)
 async def get_player_rating_history(
     player_id: str,
     game_type: GameType | None = None,
@@ -123,6 +127,7 @@ async def get_player_rating_history(
 
 
 @router.get("/{player_id}", response_model=PlayerDetailRead)
+@cache(namespace="players", expire=600)
 async def get_player_detail(
     player_id: str,
     db: AsyncSession = Depends(get_db),

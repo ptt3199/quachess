@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     ADMIN_PASSWORD: str = "admin123"
     SESSION_SECRET: str = "super-secret-chess-session-key-change-in-prod"
     ENVIRONMENT: str = "development"
+    REDIS_URL: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",

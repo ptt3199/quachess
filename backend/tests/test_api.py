@@ -8,6 +8,13 @@ from app.config import settings
 from app.database import async_session_maker, engine
 from app.main import app
 from app.models import Match, Player, RatingHistory
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
+
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_cache():
+    FastAPICache.init(InMemoryBackend(), prefix="test-cache")
 
 
 @pytest.fixture(autouse=True)

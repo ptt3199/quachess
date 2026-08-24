@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Query
+from fastapi_cache.decorator import cache
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -11,6 +12,7 @@ router = APIRouter(tags=["matches"])
 
 
 @router.get("/api/matches", response_model=list[MatchRead])
+@cache(namespace="matches", expire=300)
 async def list_matches(
     game_type: GameType | None = None,
     status_param: MatchStatus | None = Query(None, alias="status"),
@@ -29,6 +31,7 @@ async def list_matches(
 
 
 @router.get("/api/matches/upcoming", response_model=list[MatchRead])
+@cache(namespace="matches", expire=300)
 async def list_upcoming_matches(
     db: AsyncSession = Depends(get_db),
 ):
@@ -43,6 +46,7 @@ async def list_upcoming_matches(
 
 
 @router.get("/api/matches/recent", response_model=list[MatchRead])
+@cache(namespace="matches", expire=300)
 async def list_recent_matches(
     limit: int = 20,
     db: AsyncSession = Depends(get_db),
