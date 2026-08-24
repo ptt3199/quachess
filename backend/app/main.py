@@ -76,10 +76,11 @@ if not os.path.exists(static_dir):
     # Check alternate build path
     static_dir = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")
 
-if os.path.exists(static_dir):
+assets_dir = os.path.join(static_dir, "assets")
+if os.path.exists(static_dir) and os.path.exists(assets_dir):
     app.mount(
         "/assets",
-        StaticFiles(directory=os.path.join(static_dir, "assets")),
+        StaticFiles(directory=assets_dir),
         name="assets",
     )
 

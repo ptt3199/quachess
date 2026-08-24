@@ -1,5 +1,5 @@
 # Stage 1: Build React Frontend
-FROM node:20-alpine AS frontend-builder
+FROM node:22-alpine AS frontend-builder
 RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
@@ -21,15 +21,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install uv for fast Python package management
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Copy backend requirements & install dependencies
-COPY backend/requirements.txt ./backend/requirements.txt
-RUN uv pip install --system -r backend/requirements.txt
+# Copy backend config & install dependencies
+COPY backend/pyproject.toml ./backend/pyproject.toml
+COPY uv.lock ./uv.lock
+RUN uv pip install --system -r backend/pyproject.toml
 
 # Copy backend code
 COPY backend/ ./backend/
 
 # Copy built frontend static assets into backend static folder
-COPY --from=frontend-builder /app/frontend/dist ./backend/static
+COPY --from=frontend-builder /app/backend/static ./backend/static
 
 # Environment variables
 ENV PYTHONPATH=/app/backend
