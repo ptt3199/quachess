@@ -12,23 +12,6 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
 
 
-@pytest.fixture(scope="session", autouse=True)
-def setup_cache():
-    FastAPICache.init(InMemoryBackend(), prefix="test-cache")
-
-
-@pytest.fixture(autouse=True)
-async def setup_test_database():
-    async with engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
-
-    async with async_session_maker() as db:
-        await db.execute(delete(RatingHistory))
-        await db.execute(delete(Match))
-        await db.execute(delete(Player))
-        await db.commit()
-    yield
-
 
 @pytest.mark.asyncio
 async def test_health_check():

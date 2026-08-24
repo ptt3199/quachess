@@ -4,6 +4,74 @@
  */
 
 export interface paths {
+    "/api/players/signup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Player Signup */
+        post: operations["player_signup_api_players_signup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/players/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Player Login */
+        post: operations["player_login_api_players_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/players/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Player Logout */
+        post: operations["player_logout_api_players_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/players/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Player Me */
+        get: operations["player_me_api_players_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/players": {
         parameters: {
             query?: never;
@@ -13,6 +81,40 @@ export interface paths {
         };
         /** List Players */
         get: operations["list_players_api_players_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/players/{player_id}/matches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Player Matches */
+        get: operations["list_player_matches_api_players__player_id__matches_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/players/{player_id}/rating-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Player Rating History */
+        get: operations["get_player_rating_history_api_players__player_id__rating_history_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -106,34 +208,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/players/{player_id}/matches": {
+    "/api/matches/{match_id}/result": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List Player Matches */
-        get: operations["list_player_matches_api_players__player_id__matches_get"];
+        get?: never;
         put?: never;
-        post?: never;
+        /** Player Record Match Result */
+        post: operations["player_record_match_result_api_matches__match_id__result_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/players/{player_id}/rating-history": {
+    "/api/matches/{match_id}/cancel": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Player Rating History */
-        get: operations["get_player_rating_history_api_players__player_id__rating_history_get"];
+        get?: never;
         put?: never;
-        post?: never;
+        /** Player Cancel Match */
+        post: operations["player_cancel_match_api_matches__match_id__cancel_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -311,6 +413,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/challenges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Challenge */
+        post: operations["create_challenge_api_challenges_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/challenges/received": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Received Challenges */
+        get: operations["list_received_challenges_api_challenges_received_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/challenges/sent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Sent Challenges */
+        get: operations["list_sent_challenges_api_challenges_sent_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/challenges/{challenge_id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept Challenge */
+        post: operations["accept_challenge_api_challenges__challenge_id__accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/challenges/{challenge_id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decline Challenge */
+        post: operations["decline_challenge_api_challenges__challenge_id__decline_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/challenges/{challenge_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Challenge */
+        post: operations["cancel_challenge_api_challenges__challenge_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -390,6 +594,47 @@ export interface components {
              * @default 0
              */
             win_rate: number;
+        };
+        /** ChallengeCreate */
+        ChallengeCreate: {
+            /** Receiver Id */
+            receiver_id: number;
+            game_type: components["schemas"]["GameType"];
+            /**
+             * Sender Color
+             * @default WHITE
+             */
+            sender_color: string;
+            /** Scheduled At */
+            scheduled_at?: string | null;
+        };
+        /** ChallengeRead */
+        ChallengeRead: {
+            /** Id */
+            id: number;
+            /** Sender Id */
+            sender_id: number;
+            /** Receiver Id */
+            receiver_id: number;
+            /** Sender Name */
+            sender_name: string;
+            /** Receiver Name */
+            receiver_name: string;
+            game_type: components["schemas"]["GameType"];
+            /** Sender Color */
+            sender_color: string;
+            /**
+             * Scheduled At
+             * Format: date-time
+             */
+            scheduled_at: string;
+            /** Status */
+            status: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** DashboardStats */
         DashboardStats: {
@@ -524,11 +769,17 @@ export interface components {
             name: string;
             /** Display Name */
             display_name: string;
+            /** Username */
+            username?: string | null;
+            /** Password */
+            password?: string | null;
         };
         /** PlayerDetailRead */
         PlayerDetailRead: {
             /** Id */
             id: number;
+            /** Username */
+            username: string;
             /** Name */
             name: string;
             /** Display Name */
@@ -545,6 +796,13 @@ export interface components {
             stats: {
                 [key: string]: components["schemas"]["CategoryStats"];
             };
+        };
+        /** PlayerLogin */
+        PlayerLogin: {
+            /** Username */
+            username: string;
+            /** Password */
+            password: string;
         };
         /** PlayerRatingSummary */
         PlayerRatingSummary: {
@@ -568,6 +826,8 @@ export interface components {
         PlayerRead: {
             /** Id */
             id: number;
+            /** Username */
+            username: string;
             /** Name */
             name: string;
             /** Display Name */
@@ -580,6 +840,23 @@ export interface components {
              */
             created_at: string;
         };
+        /** PlayerSignup */
+        PlayerSignup: {
+            /** Username */
+            username: string;
+            /** Password */
+            password: string;
+            /** Name */
+            name: string;
+            /** Display Name */
+            display_name: string;
+        };
+        /** PlayerStatus */
+        PlayerStatus: {
+            /** Authenticated */
+            authenticated: boolean;
+            player?: components["schemas"]["PlayerRead"] | null;
+        };
         /** PlayerUpdate */
         PlayerUpdate: {
             /** Name */
@@ -588,6 +865,8 @@ export interface components {
             display_name?: string | null;
             /** Active */
             active?: boolean | null;
+            /** Password */
+            password?: string | null;
         };
         /** RatingHistoryRead */
         RatingHistoryRead: {
@@ -632,6 +911,112 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    player_signup_api_players_signup_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlayerSignup"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayerRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    player_login_api_players_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlayerLogin"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayerStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    player_logout_api_players_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayerStatus"];
+                };
+            };
+        };
+    };
+    player_me_api_players_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayerStatus"];
+                };
+            };
+        };
+    };
     list_players_api_players_get: {
         parameters: {
             query?: {
@@ -650,6 +1035,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlayerRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_player_matches_api_players__player_id__matches_get: {
+        parameters: {
+            query?: {
+                game_type?: components["schemas"]["GameType"] | null;
+            };
+            header?: never;
+            path: {
+                player_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_player_rating_history_api_players__player_id__rating_history_get: {
+        parameters: {
+            query?: {
+                game_type?: components["schemas"]["GameType"] | null;
+            };
+            header?: never;
+            path: {
+                player_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatingHistoryRead"][];
                 };
             };
             /** @description Validation Error */
@@ -808,18 +1259,20 @@ export interface operations {
             };
         };
     };
-    list_player_matches_api_players__player_id__matches_get: {
+    player_record_match_result_api_matches__match_id__result_post: {
         parameters: {
-            query?: {
-                game_type?: components["schemas"]["GameType"] | null;
-            };
+            query?: never;
             header?: never;
             path: {
-                player_id: string;
+                match_id: number;
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchResultRecord"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -827,7 +1280,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MatchRead"][];
+                    "application/json": components["schemas"]["MatchRead"];
                 };
             };
             /** @description Validation Error */
@@ -841,14 +1294,12 @@ export interface operations {
             };
         };
     };
-    get_player_rating_history_api_players__player_id__rating_history_get: {
+    player_cancel_match_api_matches__match_id__cancel_post: {
         parameters: {
-            query?: {
-                game_type?: components["schemas"]["GameType"] | null;
-            };
+            query?: never;
             header?: never;
             path: {
-                player_id: string;
+                match_id: number;
             };
             cookie?: never;
         };
@@ -860,7 +1311,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RatingHistoryRead"][];
+                    "application/json": components["schemas"]["MatchRead"];
                 };
             };
             /** @description Validation Error */
@@ -1187,6 +1638,172 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MatchRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_challenge_api_challenges_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChallengeCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChallengeRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_received_challenges_api_challenges_received_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChallengeRead"][];
+                };
+            };
+        };
+    };
+    list_sent_challenges_api_challenges_sent_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChallengeRead"][];
+                };
+            };
+        };
+    };
+    accept_challenge_api_challenges__challenge_id__accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                challenge_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChallengeRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decline_challenge_api_challenges__challenge_id__decline_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                challenge_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChallengeRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_challenge_api_challenges__challenge_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                challenge_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChallengeRead"];
                 };
             };
             /** @description Validation Error */

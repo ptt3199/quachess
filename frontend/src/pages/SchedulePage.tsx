@@ -1,22 +1,27 @@
 import { useState, useEffect } from 'react';
-import type { Match, Player, GameType, MatchResult, AdminStatus } from '../types';
+import type { Match, Player, GameType, MatchResult, AdminStatus, PlayerStatus } from '../types';
 import { api } from '../api/client';
 import { MatchCard } from '../components/MatchCard';
 import { Calendar, Trophy, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface SchedulePageProps {
   adminStatus: AdminStatus | null;
+  playerStatus: PlayerStatus | null;
   onSelectPlayer: (playerId: number) => void;
 }
 
-export const SchedulePage: React.FC<SchedulePageProps> = ({ adminStatus, onSelectPlayer }) => {
+export const SchedulePage: React.FC<SchedulePageProps> = ({
+  adminStatus,
+  playerStatus,
+  onSelectPlayer,
+}) => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Quick Direct Match Result state (available to admin or directly)
+  // Quick Direct Match Result state
   const [whitePlayerId, setWhitePlayerId] = useState<number | ''>('');
   const [blackPlayerId, setBlackPlayerId] = useState<number | ''>('');
   const [gameType, setGameType] = useState<GameType>('BLITZ');
@@ -76,6 +81,32 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ adminStatus, onSelec
     }
   };
 
+  const handlePlayerRecordResult = async (match: Match, result: MatchResult) => {
+    try {
+      setMessage(null);
+      await api.playerRecordMatchResult(match.id, result);
+      setMessage({
+        type: 'success',
+        text: `Result recorded! ${match.white_player_name} vs ${match.black_player_name}`,
+      });
+      loadData();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to record result' });
+    }
+  };
+
+  const handlePlayerCancelMatch = async (match: Match) => {
+    if (!window.confirm('Are you sure you want to cancel this match?')) return;
+    try {
+      setMessage(null);
+      await api.playerCancelMatch(match.id);
+      setMessage({ type: 'success', text: 'Match cancelled successfully!' });
+      loadData();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to cancel match' });
+    }
+  };
+
   return (
     <div className="space-y-4 pt-2">
       {/* Header Banner */}
@@ -84,7 +115,7 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ adminStatus, onSelec
           <h1 className="font-bold text-base leading-tight">Match Schedule & Results</h1>
           <p className="text-xs text-slate-400">Upcoming Fixtures & Direct Result Entry</p>
         </div>
-        <Calendar className="w-6 h-6 text-blue-400" />
+        <Calendar className="w-6 h-6 text-indigo-400" />
       </div>
 
       {/* Toast Notification */}
@@ -105,7 +136,7 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ adminStatus, onSelec
         </div>
       )}
 
-      {/* Quick Direct Result Form (Admin Only or Quick Entry) */}
+      {/* Quick Direct Result Form (Admin Only) */}
       {adminStatus?.authenticated && (
         <form
           onSubmit={handleDirectRecordResult}
@@ -125,7 +156,7 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ adminStatus, onSelec
                 value={whitePlayerId}
                 onChange={(e) => setWhitePlayerId(e.target.value ? Number(e.target.value) : '')}
                 required
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
                 <option value="">Select White</option>
                 {players.map((p) => (
@@ -144,7 +175,7 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ adminStatus, onSelec
                 value={blackPlayerId}
                 onChange={(e) => setBlackPlayerId(e.target.value ? Number(e.target.value) : '')}
                 required
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
                 <option value="">Select Black</option>
                 {players.map((p) => (
@@ -164,7 +195,7 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ adminStatus, onSelec
               <select
                 value={gameType}
                 onChange={(e) => setGameType(e.target.value as GameType)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
                 <option value="BLITZ">Blitz</option>
                 <option value="RAPID">Rapid</option>
@@ -179,7 +210,7 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ adminStatus, onSelec
               <select
                 value={matchResult}
                 onChange={(e) => setMatchResult(e.target.value as MatchResult)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
                 <option value="WHITE_WIN">White Wins (1 - 0)</option>
                 <option value="DRAW">Draw (½ - ½)</option>
@@ -205,7 +236,7 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ adminStatus, onSelec
 
         {loading ? (
           <div className="p-8 text-center text-slate-400 space-y-2">
-            <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto" />
+            <div className="animate-spin w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full mx-auto" />
             <p className="text-xs">Loading schedule...</p>
           </div>
         ) : error ? (
@@ -216,9 +247,24 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ adminStatus, onSelec
           </div>
         ) : (
           <div className="space-y-3">
-            {matches.map((match) => (
-              <MatchCard key={match.id} match={match} onSelectPlayer={onSelectPlayer} />
-            ))}
+            {matches.map((match) => {
+              const isParticipant =
+                playerStatus?.authenticated &&
+                playerStatus.player &&
+                (playerStatus.player.id === match.white_player_id ||
+                  playerStatus.player.id === match.black_player_id);
+
+              return (
+                <MatchCard
+                  key={match.id}
+                  match={match}
+                  onSelectPlayer={onSelectPlayer}
+                  showPlayerActions={!!isParticipant}
+                  onRecordResult={handlePlayerRecordResult}
+                  onCancelMatch={handlePlayerCancelMatch}
+                />
+              );
+            })}
           </div>
         )}
       </div>

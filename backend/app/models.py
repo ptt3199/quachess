@@ -28,10 +28,31 @@ class MatchResult(StrEnum):
 
 class Player(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
+    username: str = Field(index=True, unique=True)
+    password_hash: str
     name: str = Field(index=True)
     display_name: str
     active: bool = Field(default=True, index=True)
     created_at: datetime = Field(default_factory=utc_now)
+
+
+class ChallengeStatus(StrEnum):
+    PENDING = "PENDING"
+    ACCEPTED = "ACCEPTED"
+    DECLINED = "DECLINED"
+    CANCELLED = "CANCELLED"
+
+
+class Challenge(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    sender_id: int = Field(foreign_key="player.id", index=True)
+    receiver_id: int = Field(foreign_key="player.id", index=True)
+    game_type: GameType = Field(index=True)
+    sender_color: str = Field(default="WHITE")  # "WHITE" or "BLACK"
+    scheduled_at: datetime
+    status: ChallengeStatus = Field(default=ChallengeStatus.PENDING, index=True)
+    created_at: datetime = Field(default_factory=utc_now)
+
 
 
 class Match(SQLModel, table=True):

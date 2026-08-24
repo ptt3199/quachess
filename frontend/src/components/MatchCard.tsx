@@ -1,11 +1,13 @@
-import type { Match } from '../types';
+import React, { useState } from 'react';
+import type { Match, MatchResult } from '../types';
 import { formatScheduleDateTime, formatRatingChange, formatVietnamDate } from '../utils/formatters';
 
 interface MatchCardProps {
   match: Match;
   onSelectPlayer?: (playerId: number) => void;
   showAdminActions?: boolean;
-  onRecordResult?: (match: Match) => void;
+  showPlayerActions?: boolean;
+  onRecordResult?: (match: Match, result: MatchResult) => void;
   onCancelMatch?: (match: Match) => void;
 }
 
@@ -13,10 +15,12 @@ export const MatchCard: React.FC<MatchCardProps> = ({
   match,
   onSelectPlayer,
   showAdminActions = false,
+  showPlayerActions = false,
   onRecordResult,
   onCancelMatch,
 }) => {
   const { dayLabel, timeLabel } = formatScheduleDateTime(match.scheduled_at);
+  const [showSelector, setShowSelector] = useState(false);
 
   const getScoreDisplay = () => {
     if (match.status === 'SCHEDULED') return 'VS';
@@ -58,7 +62,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         >
           <div className="flex items-center space-x-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-slate-200 border border-slate-400 shrink-0" title="White" />
-            <span className="font-semibold text-slate-900 group-hover:text-blue-600 truncate text-sm">
+            <span className="font-semibold text-slate-900 group-hover:text-indigo-600 truncate text-sm">
               {match.white_player_name}
             </span>
           </div>
@@ -77,7 +81,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 ? 'bg-slate-900 text-white shadow-xs'
                 : match.status === 'CANCELLED'
                 ? 'bg-red-100 text-red-600'
-                : 'bg-blue-50 text-blue-600 border border-blue-200'
+                : 'bg-indigo-50 text-indigo-600 border border-indigo-200'
             }`}
           >
             {getScoreDisplay()}
@@ -90,7 +94,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
           className="col-span-3 text-right focus:outline-none min-h-0 group"
         >
           <div className="flex items-center justify-end space-x-1.5">
-            <span className="font-semibold text-slate-900 group-hover:text-blue-600 truncate text-sm">
+            <span className="font-semibold text-slate-900 group-hover:text-indigo-600 truncate text-sm">
               {match.black_player_name}
             </span>
             <span className="w-2.5 h-2.5 rounded-full bg-slate-800 shrink-0" title="Black" />
@@ -103,24 +107,69 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         </button>
       </div>
 
-      {/* Admin Action Buttons */}
-      {showAdminActions && (
-        <div className="pt-2 border-t border-slate-100 flex items-center justify-end space-x-2">
-          {onRecordResult && (
-            <button
-              onClick={() => onRecordResult(match)}
-              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs min-h-0"
-            >
-              {isCompleted ? 'Edit Result' : 'Record Result'}
-            </button>
-          )}
-          {onCancelMatch && match.status !== 'CANCELLED' && (
-            <button
-              onClick={() => onCancelMatch(match)}
-              className="px-3 py-1.5 bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 rounded-lg text-xs font-medium min-h-0"
-            >
-              Cancel Match
-            </button>
+      {/* Action Buttons */}
+      {(showAdminActions || showPlayerActions) && match.status === 'SCHEDULED' && (
+        <div className="pt-2.5 border-t border-slate-100">
+          {showSelector ? (
+            <div className="space-y-2">
+              <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
+                Select Result:
+              </span>
+              <div className="flex gap-1.5">
+                <button
+                  onClick={() => {
+                    onRecordResult && onRecordResult(match, 'WHITE_WIN');
+                    setShowSelector(false);
+                  }}
+                  className="flex-1 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-lg text-[11px] font-bold transition"
+                >
+                  ⚪ White Win
+                </button>
+                <button
+                  onClick={() => {
+                    onRecordResult && onRecordResult(match, 'DRAW');
+                    setShowSelector(false);
+                  }}
+                  className="flex-1 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-lg text-[11px] font-bold transition"
+                >
+                  ½-½ Draw
+                </button>
+                <button
+                  onClick={() => {
+                    onRecordResult && onRecordResult(match, 'BLACK_WIN');
+                    setShowSelector(false);
+                  }}
+                  className="flex-1 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-lg text-[11px] font-bold transition"
+                >
+                  ⚫ Black Win
+                </button>
+                <button
+                  onClick={() => setShowSelector(false)}
+                  className="px-2.5 py-1.5 text-slate-400 hover:text-slate-600 rounded-lg text-[11px] transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-end space-x-2">
+              {onRecordResult && (
+                <button
+                  onClick={() => setShowSelector(true)}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs min-h-0 transition"
+                >
+                  Record Result
+                </button>
+              )}
+              {onCancelMatch && (
+                <button
+                  onClick={() => onCancelMatch(match)}
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 rounded-lg text-xs font-medium min-h-0 transition"
+                >
+                  Cancel Match
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}

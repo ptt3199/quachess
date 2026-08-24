@@ -11,3 +11,6 @@ export type RatingHistory = components['schemas']['RatingHistoryRead'];
 export type AdminStatus = components['schemas']['AdminStatus'];
 export type DashboardStats = components['schemas']['DashboardStats'];
 export type CategoryStats = components['schemas']['CategoryStats'];
+export type PlayerStatus = components['schemas']['PlayerStatus'];
+export type Challenge = components['schemas']['ChallengeRead'];
+

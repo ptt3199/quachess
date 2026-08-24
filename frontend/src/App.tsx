@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import type { AdminStatus } from './types';
+import type { AdminStatus, PlayerStatus, Challenge } from './types';
 import { api } from './api/client';
 import { Header } from './components/Header';
 import { MobileNav } from './components/MobileNav';
@@ -11,9 +11,16 @@ import { PlayerDetailPage } from './pages/PlayerDetailPage';
 import { AdminLoginPage } from './pages/AdminLoginPage';
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { PwaUpdatePrompt } from './components/PwaUpdatePrompt';
+import { PlayerAuthModal } from './components/PlayerAuthModal';
+import { ChallengesInbox } from './components/ChallengesInbox';
 
 export function App() {
   const [adminStatus, setAdminStatus] = useState<AdminStatus | null>(null);
+  const [playerStatus, setPlayerStatus] = useState<PlayerStatus | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isInboxOpen, setIsInboxOpen] = useState(false);
+  const [receivedChallenges, setReceivedChallenges] = useState<Challenge[]>([]);
+  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -22,10 +29,48 @@ export function App() {
       .getAdminStatus()
       .then((status) => setAdminStatus(status))
       .catch(() => setAdminStatus({ authenticated: false, username: null }));
+
+    // Check initial player auth status
+    api
+      .getPlayerMe()
+      .then((status) => setPlayerStatus(status))
+      .catch(() => setPlayerStatus({ authenticated: false, player: null }));
   }, []);
+
+  // Poll for received challenges (notification system)
+  useEffect(() => {
+    if (playerStatus?.authenticated) {
+      const fetchCount = () => {
+        api.getChallengesReceived()
+          .then(setReceivedChallenges)
+          .catch(() => {});
+      };
+      fetchCount();
+      const interval = setInterval(fetchCount, 30000);
+      return () => clearInterval(interval);
+    } else {
+      setReceivedChallenges([]);
+    }
+  }, [playerStatus]);
+
+  const handleLogoutPlayer = async () => {
+    try {
+      await api.playerLogout();
+      setPlayerStatus({ authenticated: false, player: null });
+      navigate('/');
+    } catch (err) {
+      console.error('Logout failed', err);
+    }
+  };
 
   const handleSelectPlayer = (idOrName: number | string) => {
     navigate(`/players/${idOrName}`);
+  };
+
+  const handleRefreshMatches = () => {
+    // Triggers matches update on active route if needed, or simple redirect/reload
+    // Refreshing list matches in inbox
+    api.getChallengesReceived().then(setReceivedChallenges).catch(() => {});
   };
 
   const renderAdminRoute = () => (
@@ -45,13 +90,21 @@ export function App() {
   const renderPlayerDetailRoute = () => (
     <PlayerDetailPage
       adminStatus={adminStatus}
+      playerStatus={playerStatus}
       onSelectPlayer={handleSelectPlayer}
     />
   );
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
-      <Header adminStatus={adminStatus} />
+      <Header
+        adminStatus={adminStatus}
+        playerStatus={playerStatus}
+        onLogoutPlayer={handleLogoutPlayer}
+        onLoginPlayerClick={() => setIsAuthModalOpen(true)}
+        onInboxClick={() => setIsInboxOpen(true)}
+        pendingCount={receivedChallenges.length}
+      />
 
       <main className="flex-1 max-w-md w-full mx-auto px-4 pb-24">
         <Routes>
@@ -68,6 +121,7 @@ export function App() {
             element={
               <SchedulePage
                 adminStatus={adminStatus}
+                playerStatus={playerStatus}
                 onSelectPlayer={handleSelectPlayer}
               />
             }
@@ -77,18 +131,19 @@ export function App() {
             element={
               <SchedulePage
                 adminStatus={adminStatus}
+                playerStatus={playerStatus}
                 onSelectPlayer={handleSelectPlayer}
               />
             }
           />
 
-          {/* Player Profiles (/players/hio, /players/1) */}
+          {/* Player Profiles */}
           <Route path="/players/:id" element={renderPlayerDetailRoute()} />
           <Route path="/players/:id/" element={renderPlayerDetailRoute()} />
           <Route path="/users/:id" element={renderPlayerDetailRoute()} />
           <Route path="/users/:id/" element={renderPlayerDetailRoute()} />
 
-          {/* Admin Dashboard / Login */}
+          {/* Admin Dashboard */}
           <Route path="/admin" element={renderAdminRoute()} />
           <Route path="/admin/" element={renderAdminRoute()} />
 
@@ -99,6 +154,19 @@ export function App() {
 
       <MobileNav />
       <PwaUpdatePrompt />
+
+      {/* Modals */}
+      <PlayerAuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onLoginSuccess={(status) => setPlayerStatus(status)}
+      />
+
+      <ChallengesInbox
+        isOpen={isInboxOpen}
+        onClose={() => setIsInboxOpen(false)}
+        onRefreshMatches={handleRefreshMatches}
+      />
     </div>
   );
 }

@@ -5,6 +5,130 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/api/players/signup": {
+      "post": {
+        "tags": [
+          "player-auth"
+        ],
+        "summary": "Player Signup",
+        "operationId": "player_signup_api_players_signup_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlayerSignup"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/players/login": {
+      "post": {
+        "tags": [
+          "player-auth"
+        ],
+        "summary": "Player Login",
+        "operationId": "player_login_api_players_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlayerLogin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/players/logout": {
+      "post": {
+        "tags": [
+          "player-auth"
+        ],
+        "summary": "Player Logout",
+        "operationId": "player_logout_api_players_logout_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/players/me": {
+      "get": {
+        "tags": [
+          "player-auth"
+        ],
+        "summary": "Player Me",
+        "operationId": "player_me_api_players_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/players": {
       "get": {
         "tags": [
@@ -35,6 +159,130 @@
                     "$ref": "#/components/schemas/PlayerRead"
                   },
                   "title": "Response List Players Api Players Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/players/{player_id}/matches": {
+      "get": {
+        "tags": [
+          "players"
+        ],
+        "summary": "List Player Matches",
+        "operationId": "list_player_matches_api_players__player_id__matches_get",
+        "parameters": [
+          {
+            "name": "player_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Player Id"
+            }
+          },
+          {
+            "name": "game_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/GameType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Game Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MatchRead"
+                  },
+                  "title": "Response List Player Matches Api Players  Player Id  Matches Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/players/{player_id}/rating-history": {
+      "get": {
+        "tags": [
+          "players"
+        ],
+        "summary": "Get Player Rating History",
+        "operationId": "get_player_rating_history_api_players__player_id__rating_history_get",
+        "parameters": [
+          {
+            "name": "player_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Player Id"
+            }
+          },
+          {
+            "name": "game_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/GameType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Game Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RatingHistoryRead"
+                  },
+                  "title": "Response Get Player Rating History Api Players  Player Id  Rating History Get"
                 }
               }
             }
@@ -281,51 +529,41 @@
         }
       }
     },
-    "/api/players/{player_id}/matches": {
-      "get": {
+    "/api/matches/{match_id}/result": {
+      "post": {
         "tags": [
           "matches"
         ],
-        "summary": "List Player Matches",
-        "operationId": "list_player_matches_api_players__player_id__matches_get",
+        "summary": "Player Record Match Result",
+        "operationId": "player_record_match_result_api_matches__match_id__result_post",
         "parameters": [
           {
-            "name": "player_id",
+            "name": "match_id",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "title": "Player Id"
-            }
-          },
-          {
-            "name": "game_type",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/GameType"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Game Type"
+              "type": "integer",
+              "title": "Match Id"
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchResultRecord"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MatchRead"
-                  },
-                  "title": "Response List Player Matches Api Players  Player Id  Matches Get"
+                  "$ref": "#/components/schemas/MatchRead"
                 }
               }
             }
@@ -343,37 +581,21 @@
         }
       }
     },
-    "/api/players/{player_id}/rating-history": {
-      "get": {
+    "/api/matches/{match_id}/cancel": {
+      "post": {
         "tags": [
           "matches"
         ],
-        "summary": "Get Player Rating History",
-        "operationId": "get_player_rating_history_api_players__player_id__rating_history_get",
+        "summary": "Player Cancel Match",
+        "operationId": "player_cancel_match_api_matches__match_id__cancel_post",
         "parameters": [
           {
-            "name": "player_id",
+            "name": "match_id",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "title": "Player Id"
-            }
-          },
-          {
-            "name": "game_type",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/GameType"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Game Type"
+              "type": "integer",
+              "title": "Match Id"
             }
           }
         ],
@@ -383,11 +605,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/RatingHistoryRead"
-                  },
-                  "title": "Response Get Player Rating History Api Players  Player Id  Rating History Get"
+                  "$ref": "#/components/schemas/MatchRead"
                 }
               }
             }
@@ -827,6 +1045,223 @@
         }
       }
     },
+    "/api/challenges": {
+      "post": {
+        "tags": [
+          "challenges"
+        ],
+        "summary": "Create Challenge",
+        "operationId": "create_challenge_api_challenges_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChallengeCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallengeRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/challenges/received": {
+      "get": {
+        "tags": [
+          "challenges"
+        ],
+        "summary": "List Received Challenges",
+        "operationId": "list_received_challenges_api_challenges_received_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ChallengeRead"
+                  },
+                  "type": "array",
+                  "title": "Response List Received Challenges Api Challenges Received Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/challenges/sent": {
+      "get": {
+        "tags": [
+          "challenges"
+        ],
+        "summary": "List Sent Challenges",
+        "operationId": "list_sent_challenges_api_challenges_sent_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ChallengeRead"
+                  },
+                  "type": "array",
+                  "title": "Response List Sent Challenges Api Challenges Sent Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/challenges/{challenge_id}/accept": {
+      "post": {
+        "tags": [
+          "challenges"
+        ],
+        "summary": "Accept Challenge",
+        "operationId": "accept_challenge_api_challenges__challenge_id__accept_post",
+        "parameters": [
+          {
+            "name": "challenge_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Challenge Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallengeRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/challenges/{challenge_id}/decline": {
+      "post": {
+        "tags": [
+          "challenges"
+        ],
+        "summary": "Decline Challenge",
+        "operationId": "decline_challenge_api_challenges__challenge_id__decline_post",
+        "parameters": [
+          {
+            "name": "challenge_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Challenge Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallengeRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/challenges/{challenge_id}/cancel": {
+      "post": {
+        "tags": [
+          "challenges"
+        ],
+        "summary": "Cancel Challenge",
+        "operationId": "cancel_challenge_api_challenges__challenge_id__cancel_post",
+        "parameters": [
+          {
+            "name": "challenge_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Challenge Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallengeRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health Check",
@@ -955,6 +1390,99 @@
         },
         "type": "object",
         "title": "CategoryStats"
+      },
+      "ChallengeCreate": {
+        "properties": {
+          "receiver_id": {
+            "type": "integer",
+            "title": "Receiver Id"
+          },
+          "game_type": {
+            "$ref": "#/components/schemas/GameType"
+          },
+          "sender_color": {
+            "type": "string",
+            "title": "Sender Color",
+            "default": "WHITE"
+          },
+          "scheduled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduled At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "receiver_id",
+          "game_type"
+        ],
+        "title": "ChallengeCreate"
+      },
+      "ChallengeRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "sender_id": {
+            "type": "integer",
+            "title": "Sender Id"
+          },
+          "receiver_id": {
+            "type": "integer",
+            "title": "Receiver Id"
+          },
+          "sender_name": {
+            "type": "string",
+            "title": "Sender Name"
+          },
+          "receiver_name": {
+            "type": "string",
+            "title": "Receiver Name"
+          },
+          "game_type": {
+            "$ref": "#/components/schemas/GameType"
+          },
+          "sender_color": {
+            "type": "string",
+            "title": "Sender Color"
+          },
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Scheduled At"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "sender_id",
+          "receiver_id",
+          "sender_name",
+          "receiver_name",
+          "game_type",
+          "sender_color",
+          "scheduled_at",
+          "status",
+          "created_at"
+        ],
+        "title": "ChallengeRead"
       },
       "DashboardStats": {
         "properties": {
@@ -1359,6 +1887,28 @@
           "display_name": {
             "type": "string",
             "title": "Display Name"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
           }
         },
         "type": "object",
@@ -1373,6 +1923,10 @@
           "id": {
             "type": "integer",
             "title": "Id"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
           },
           "name": {
             "type": "string",
@@ -1405,6 +1959,7 @@
         "type": "object",
         "required": [
           "id",
+          "username",
           "name",
           "display_name",
           "active",
@@ -1413,6 +1968,24 @@
           "stats"
         ],
         "title": "PlayerDetailRead"
+      },
+      "PlayerLogin": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "PlayerLogin"
       },
       "PlayerRatingSummary": {
         "properties": {
@@ -1441,6 +2014,10 @@
             "type": "integer",
             "title": "Id"
           },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
           "name": {
             "type": "string",
             "title": "Name"
@@ -1462,12 +2039,64 @@
         "type": "object",
         "required": [
           "id",
+          "username",
           "name",
           "display_name",
           "active",
           "created_at"
         ],
         "title": "PlayerRead"
+      },
+      "PlayerSignup": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password",
+          "name",
+          "display_name"
+        ],
+        "title": "PlayerSignup"
+      },
+      "PlayerStatus": {
+        "properties": {
+          "authenticated": {
+            "type": "boolean",
+            "title": "Authenticated"
+          },
+          "player": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlayerRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "authenticated"
+        ],
+        "title": "PlayerStatus"
       },
       "PlayerUpdate": {
         "properties": {
@@ -1503,6 +2132,17 @@
               }
             ],
             "title": "Active"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
           }
         },
         "type": "object",

@@ -8,16 +8,20 @@ from app.models import GameType, MatchResult, MatchStatus
 class PlayerCreate(BaseModel):
     name: str
     display_name: str
+    username: str | None = None
+    password: str | None = None
 
 
 class PlayerUpdate(BaseModel):
     name: str | None = None
     display_name: str | None = None
     active: bool | None = None
+    password: str | None = None
 
 
 class PlayerRead(BaseModel):
     id: int
+    username: str
     name: str
     display_name: str
     active: bool
@@ -42,6 +46,7 @@ class CategoryStats(BaseModel):
 
 class PlayerDetailRead(BaseModel):
     id: int
+    username: str
     name: str
     display_name: str
     active: bool
@@ -137,3 +142,42 @@ class DashboardStats(BaseModel):
     blitz_games: int
     classical_games: int
     upcoming_matches: int
+
+
+class PlayerSignup(BaseModel):
+    username: str
+    password: str
+    name: str
+    display_name: str
+
+
+class PlayerLogin(BaseModel):
+    username: str
+    password: str
+
+
+class PlayerStatus(BaseModel):
+    authenticated: bool
+    player: PlayerRead | None = None
+
+
+class ChallengeCreate(BaseModel):
+    receiver_id: int
+    game_type: GameType
+    sender_color: str = "WHITE"  # WHITE or BLACK
+    scheduled_at: datetime | None = None
+
+
+class ChallengeRead(BaseModel):
+    id: int
+    sender_id: int
+    receiver_id: int
+    sender_name: str
+    receiver_name: str
+    game_type: GameType
+    sender_color: str
+    scheduled_at: datetime
+    status: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

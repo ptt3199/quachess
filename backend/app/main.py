@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlmodel import SQLModel
 
-from app.api import admin, matches, players, rankings
+from app.api import admin, auth, challenges, matches, players, rankings
 from app.config import settings
 from app.database import engine
 from fastapi_cache import FastAPICache
@@ -59,10 +59,12 @@ app.add_middleware(
 )
 
 # Include API Routers
+app.include_router(auth.router)
 app.include_router(players.router)
 app.include_router(rankings.router)
 app.include_router(matches.router)
 app.include_router(admin.router)
+app.include_router(challenges.router)
 
 
 @app.get("/health")

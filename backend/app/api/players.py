@@ -188,6 +188,7 @@ async def get_player_detail(
 
     return PlayerDetailRead(
         id=player.id,
+        username=player.username,
         name=player.name,
         display_name=player.display_name,
         active=player.active,

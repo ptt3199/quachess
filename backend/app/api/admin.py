@@ -26,6 +26,7 @@ from app.schemas import (
     PlayerUpdate,
 )
 from app.services.elo import recalculate_all_ratings
+from app.auth.hash import hash_password
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -121,9 +122,21 @@ async def create_player(
     admin_user: str = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    username = (payload.username or payload.name).strip().lower().replace(" ", "")
+    stmt = select(Player).where(Player.username == username)
+    res = await db.execute(stmt)
+    if res.scalars().first():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Username '{username}' is already taken",
+        )
+
+    name_val = payload.name.strip()
     player = Player(
-        name=payload.name.strip(),
-        display_name=payload.display_name.strip(),
+        username=username,
+        password_hash=hash_password(payload.password or "password123"),
+        name=name_val,
+        display_name=payload.display_name.strip() or name_val,
         active=True,
     )
     db.add(player)
@@ -153,6 +166,8 @@ async def update_player(
         player.display_name = payload.display_name.strip()
     if payload.active is not None:
         player.active = payload.active
+    if payload.password is not None:
+        player.password_hash = hash_password(payload.password)
 
     db.add(player)
     await db.commit()

@@ -14,6 +14,7 @@ from app.models import (
     SQLModel,
 )
 from app.services.elo import recalculate_all_ratings
+from app.auth.hash import hash_password
 
 
 async def seed():
@@ -43,7 +44,14 @@ async def seed():
 
         players = []
         for name, display_name in players_data:
-            p = Player(name=name, display_name=display_name, active=True)
+            username = name.lower().replace(" ", "")
+            p = Player(
+                username=username,
+                password_hash=hash_password("password123"),
+                name=name,
+                display_name=display_name,
+                active=True
+            )
             db.add(p)
             players.append(p)
 

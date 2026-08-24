@@ -1,5 +1,5 @@
 import createClient from 'openapi-fetch';
-import type { paths } from '../client/types';
+import type { paths, components } from '../client/types';
 import type {
   GameType,
   MatchResult,
@@ -10,6 +10,8 @@ import type {
   RatingHistory,
   AdminStatus,
   DashboardStats,
+  PlayerStatus,
+  Challenge,
 } from '../types';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -156,6 +158,98 @@ export const api = {
 
   cancelMatch: async (matchId: number): Promise<Match> => {
     const { data, error } = await client.POST('/api/admin/matches/{match_id}/cancel', {
+      params: { path: { match_id: matchId } },
+    });
+    if (error) throw new Error((error as any).detail || 'Failed to cancel match');
+    return data!;
+  },
+
+  // Player Auth APIs
+  playerSignUp: async (signupData: components['schemas']['PlayerSignup']): Promise<Player> => {
+    const { data, error } = await client.POST('/api/players/signup', {
+      body: signupData,
+    });
+    if (error) throw new Error((error as any).detail || 'Failed to sign up');
+    return data!;
+  },
+
+  playerLogin: async (loginData: components['schemas']['PlayerLogin']): Promise<PlayerStatus> => {
+    const { data, error } = await client.POST('/api/players/login', {
+      body: loginData,
+    });
+    if (error) throw new Error((error as any).detail || 'Invalid credentials');
+    return data!;
+  },
+
+  playerLogout: async (): Promise<PlayerStatus> => {
+    const { data, error } = await client.POST('/api/players/logout');
+    if (error) throw new Error('Failed to logout');
+    return data!;
+  },
+
+  getPlayerMe: async (): Promise<PlayerStatus> => {
+    const { data, error } = await client.GET('/api/players/me');
+    if (error) throw new Error('Not logged in');
+    return data!;
+  },
+
+  // Challenges APIs
+  createChallenge: async (challengeData: components['schemas']['ChallengeCreate']): Promise<Challenge> => {
+    const { data, error } = await client.POST('/api/challenges', {
+      body: challengeData,
+    });
+    if (error) throw new Error((error as any).detail || 'Failed to send challenge');
+    return data!;
+  },
+
+  getChallengesReceived: async (): Promise<Challenge[]> => {
+    const { data, error } = await client.GET('/api/challenges/received');
+    if (error) throw new Error('Failed to fetch received challenges');
+    return data || [];
+  },
+
+  getChallengesSent: async (): Promise<Challenge[]> => {
+    const { data, error } = await client.GET('/api/challenges/sent');
+    if (error) throw new Error('Failed to fetch sent challenges');
+    return data || [];
+  },
+
+  acceptChallenge: async (challengeId: number): Promise<Challenge> => {
+    const { data, error } = await client.POST('/api/challenges/{challenge_id}/accept', {
+      params: { path: { challenge_id: challengeId } },
+    });
+    if (error) throw new Error((error as any).detail || 'Failed to accept challenge');
+    return data!;
+  },
+
+  declineChallenge: async (challengeId: number): Promise<Challenge> => {
+    const { data, error } = await client.POST('/api/challenges/{challenge_id}/decline', {
+      params: { path: { challenge_id: challengeId } },
+    });
+    if (error) throw new Error((error as any).detail || 'Failed to decline challenge');
+    return data!;
+  },
+
+  cancelChallenge: async (challengeId: number): Promise<Challenge> => {
+    const { data, error } = await client.POST('/api/challenges/{challenge_id}/cancel', {
+      params: { path: { challenge_id: challengeId } },
+    });
+    if (error) throw new Error((error as any).detail || 'Failed to cancel challenge');
+    return data!;
+  },
+
+  // Player Match APIs
+  playerRecordMatchResult: async (matchId: number, result: MatchResult): Promise<Match> => {
+    const { data, error } = await client.POST('/api/matches/{match_id}/result', {
+      params: { path: { match_id: matchId } },
+      body: { result },
+    });
+    if (error) throw new Error((error as any).detail || 'Failed to record result');
+    return data!;
+  },
+
+  playerCancelMatch: async (matchId: number): Promise<Match> => {
+    const { data, error } = await client.POST('/api/matches/{match_id}/cancel', {
       params: { path: { match_id: matchId } },
     });
     if (error) throw new Error((error as any).detail || 'Failed to cancel match');

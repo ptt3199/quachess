@@ -8,23 +8,20 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlmodel import SQLModel
 
 from app.config import settings
+from app.database import normalize_database_url
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
 
-db_url = settings.DATABASE_URL
-if db_url.startswith("postgres://"):
-    db_url = db_url.replace("postgres://", "postgresql+asyncpg://", 1)
-elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+asyncpg://"):
-    db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
-
+db_url = normalize_database_url(settings.DATABASE_URL)
 config.set_main_option("sqlalchemy.url", db_url)
 
 # Interpret the config file for Python logging.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+from app.models import Player, Match, RatingHistory, Challenge
 target_metadata = SQLModel.metadata
 
 
