@@ -219,8 +219,5 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# Frontend built static files
-static/
-
 chess.db
 .env.prod
