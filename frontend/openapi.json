@@ -1,0 +1,1601 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Quaveo Chess Club Rating API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/players": {
+      "get": {
+        "tags": [
+          "players"
+        ],
+        "summary": "List Players",
+        "operationId": "list_players_api_players_get",
+        "parameters": [
+          {
+            "name": "active_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Active Only"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlayerRead"
+                  },
+                  "title": "Response List Players Api Players Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/players/{player_id}": {
+      "get": {
+        "tags": [
+          "players"
+        ],
+        "summary": "Get Player Detail",
+        "operationId": "get_player_detail_api_players__player_id__get",
+        "parameters": [
+          {
+            "name": "player_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Player Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerDetailRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rankings": {
+      "get": {
+        "tags": [
+          "rankings"
+        ],
+        "summary": "Get Rankings",
+        "operationId": "get_rankings_api_rankings_get",
+        "parameters": [
+          {
+            "name": "game_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/GameType",
+              "default": "BLITZ"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LeaderboardEntry"
+                  },
+                  "title": "Response Get Rankings Api Rankings Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/matches": {
+      "get": {
+        "tags": [
+          "matches"
+        ],
+        "summary": "List Matches",
+        "operationId": "list_matches_api_matches_get",
+        "parameters": [
+          {
+            "name": "game_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/GameType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Game Type"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/MatchStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MatchRead"
+                  },
+                  "title": "Response List Matches Api Matches Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/matches/upcoming": {
+      "get": {
+        "tags": [
+          "matches"
+        ],
+        "summary": "List Upcoming Matches",
+        "operationId": "list_upcoming_matches_api_matches_upcoming_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MatchRead"
+                  },
+                  "type": "array",
+                  "title": "Response List Upcoming Matches Api Matches Upcoming Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/matches/recent": {
+      "get": {
+        "tags": [
+          "matches"
+        ],
+        "summary": "List Recent Matches",
+        "operationId": "list_recent_matches_api_matches_recent_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MatchRead"
+                  },
+                  "title": "Response List Recent Matches Api Matches Recent Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/players/{player_id}/matches": {
+      "get": {
+        "tags": [
+          "matches"
+        ],
+        "summary": "List Player Matches",
+        "operationId": "list_player_matches_api_players__player_id__matches_get",
+        "parameters": [
+          {
+            "name": "player_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Player Id"
+            }
+          },
+          {
+            "name": "game_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/GameType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Game Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MatchRead"
+                  },
+                  "title": "Response List Player Matches Api Players  Player Id  Matches Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/players/{player_id}/rating-history": {
+      "get": {
+        "tags": [
+          "matches"
+        ],
+        "summary": "Get Player Rating History",
+        "operationId": "get_player_rating_history_api_players__player_id__rating_history_get",
+        "parameters": [
+          {
+            "name": "player_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Player Id"
+            }
+          },
+          {
+            "name": "game_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/GameType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Game Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RatingHistoryRead"
+                  },
+                  "title": "Response Get Player Rating History Api Players  Player Id  Rating History Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/login": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Admin Login",
+        "operationId": "admin_login_api_admin_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminLogin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/logout": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Admin Logout",
+        "operationId": "admin_logout_api_admin_logout_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/status": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Admin Status",
+        "operationId": "admin_status_api_admin_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/dashboard": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get Dashboard Stats",
+        "operationId": "get_dashboard_stats_api_admin_dashboard_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardStats"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/players": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Create Player",
+        "operationId": "create_player_api_admin_players_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlayerCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/players/{player_id}": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Update Player",
+        "operationId": "update_player_api_admin_players__player_id__patch",
+        "parameters": [
+          {
+            "name": "player_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Player Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlayerUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Delete Player",
+        "operationId": "delete_player_api_admin_players__player_id__delete",
+        "parameters": [
+          {
+            "name": "player_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Player Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/matches": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Create Match",
+        "operationId": "create_match_api_admin_matches_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/matches/{match_id}": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Update Match",
+        "operationId": "update_match_api_admin_matches__match_id__patch",
+        "parameters": [
+          {
+            "name": "match_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Match Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/matches/{match_id}/result": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Record Match Result",
+        "operationId": "record_match_result_api_admin_matches__match_id__result_post",
+        "parameters": [
+          {
+            "name": "match_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Match Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchResultRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/matches/{match_id}/cancel": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Cancel Match",
+        "operationId": "cancel_match_api_admin_matches__match_id__cancel_post",
+        "parameters": [
+          {
+            "name": "match_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Match Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/{full_path}": {
+      "get": {
+        "summary": "Serve Spa",
+        "operationId": "serve_spa__full_path__get",
+        "parameters": [
+          {
+            "name": "full_path",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Full Path"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AdminLogin": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "AdminLogin"
+      },
+      "AdminStatus": {
+        "properties": {
+          "authenticated": {
+            "type": "boolean",
+            "title": "Authenticated"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          }
+        },
+        "type": "object",
+        "required": [
+          "authenticated"
+        ],
+        "title": "AdminStatus"
+      },
+      "CategoryStats": {
+        "properties": {
+          "games_played": {
+            "type": "integer",
+            "title": "Games Played",
+            "default": 0
+          },
+          "wins": {
+            "type": "integer",
+            "title": "Wins",
+            "default": 0
+          },
+          "draws": {
+            "type": "integer",
+            "title": "Draws",
+            "default": 0
+          },
+          "losses": {
+            "type": "integer",
+            "title": "Losses",
+            "default": 0
+          },
+          "win_rate": {
+            "type": "number",
+            "title": "Win Rate",
+            "default": 0.0
+          }
+        },
+        "type": "object",
+        "title": "CategoryStats"
+      },
+      "DashboardStats": {
+        "properties": {
+          "players_count": {
+            "type": "integer",
+            "title": "Players Count"
+          },
+          "rapid_games": {
+            "type": "integer",
+            "title": "Rapid Games"
+          },
+          "blitz_games": {
+            "type": "integer",
+            "title": "Blitz Games"
+          },
+          "classical_games": {
+            "type": "integer",
+            "title": "Classical Games"
+          },
+          "upcoming_matches": {
+            "type": "integer",
+            "title": "Upcoming Matches"
+          }
+        },
+        "type": "object",
+        "required": [
+          "players_count",
+          "rapid_games",
+          "blitz_games",
+          "classical_games",
+          "upcoming_matches"
+        ],
+        "title": "DashboardStats"
+      },
+      "GameType": {
+        "type": "string",
+        "enum": [
+          "RAPID",
+          "BLITZ",
+          "CLASSICAL"
+        ],
+        "title": "GameType"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LeaderboardEntry": {
+        "properties": {
+          "rank": {
+            "type": "integer",
+            "title": "Rank"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active"
+          },
+          "rating": {
+            "type": "integer",
+            "title": "Rating"
+          },
+          "games_played": {
+            "type": "integer",
+            "title": "Games Played"
+          },
+          "wins": {
+            "type": "integer",
+            "title": "Wins"
+          },
+          "draws": {
+            "type": "integer",
+            "title": "Draws"
+          },
+          "losses": {
+            "type": "integer",
+            "title": "Losses"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rank",
+          "id",
+          "name",
+          "display_name",
+          "active",
+          "rating",
+          "games_played",
+          "wins",
+          "draws",
+          "losses"
+        ],
+        "title": "LeaderboardEntry"
+      },
+      "MatchCreate": {
+        "properties": {
+          "white_player_id": {
+            "type": "integer",
+            "title": "White Player Id"
+          },
+          "black_player_id": {
+            "type": "integer",
+            "title": "Black Player Id"
+          },
+          "game_type": {
+            "$ref": "#/components/schemas/GameType"
+          },
+          "scheduled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduled At"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MatchStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MatchResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "white_player_id",
+          "black_player_id",
+          "game_type"
+        ],
+        "title": "MatchCreate"
+      },
+      "MatchRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "white_player_id": {
+            "type": "integer",
+            "title": "White Player Id"
+          },
+          "black_player_id": {
+            "type": "integer",
+            "title": "Black Player Id"
+          },
+          "white_player_name": {
+            "type": "string",
+            "title": "White Player Name"
+          },
+          "black_player_name": {
+            "type": "string",
+            "title": "Black Player Name"
+          },
+          "game_type": {
+            "$ref": "#/components/schemas/GameType"
+          },
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Scheduled At"
+          },
+          "played_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Played At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MatchStatus"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MatchResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "white_rating_before": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "White Rating Before"
+          },
+          "black_rating_before": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Black Rating Before"
+          },
+          "white_rating_change": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "White Rating Change"
+          },
+          "black_rating_change": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Black Rating Change"
+          },
+          "white_rating_after": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "White Rating After"
+          },
+          "black_rating_after": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Black Rating After"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "white_player_id",
+          "black_player_id",
+          "white_player_name",
+          "black_player_name",
+          "game_type",
+          "scheduled_at",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "MatchRead"
+      },
+      "MatchResult": {
+        "type": "string",
+        "enum": [
+          "WHITE_WIN",
+          "DRAW",
+          "BLACK_WIN"
+        ],
+        "title": "MatchResult"
+      },
+      "MatchResultRecord": {
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/MatchResult"
+          }
+        },
+        "type": "object",
+        "required": [
+          "result"
+        ],
+        "title": "MatchResultRecord"
+      },
+      "MatchStatus": {
+        "type": "string",
+        "enum": [
+          "SCHEDULED",
+          "COMPLETED",
+          "CANCELLED"
+        ],
+        "title": "MatchStatus"
+      },
+      "MatchUpdate": {
+        "properties": {
+          "scheduled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduled At"
+          },
+          "white_player_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "White Player Id"
+          },
+          "black_player_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Black Player Id"
+          },
+          "game_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GameType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "MatchUpdate"
+      },
+      "PlayerCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "display_name"
+        ],
+        "title": "PlayerCreate"
+      },
+      "PlayerDetailRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "ratings": {
+            "$ref": "#/components/schemas/PlayerRatingSummary"
+          },
+          "stats": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/CategoryStats"
+            },
+            "type": "object",
+            "title": "Stats"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "display_name",
+          "active",
+          "created_at",
+          "ratings",
+          "stats"
+        ],
+        "title": "PlayerDetailRead"
+      },
+      "PlayerRatingSummary": {
+        "properties": {
+          "RAPID": {
+            "type": "integer",
+            "title": "Rapid",
+            "default": 1200
+          },
+          "BLITZ": {
+            "type": "integer",
+            "title": "Blitz",
+            "default": 1200
+          },
+          "CLASSICAL": {
+            "type": "integer",
+            "title": "Classical",
+            "default": 1200
+          }
+        },
+        "type": "object",
+        "title": "PlayerRatingSummary"
+      },
+      "PlayerRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "display_name",
+          "active",
+          "created_at"
+        ],
+        "title": "PlayerRead"
+      },
+      "PlayerUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active"
+          }
+        },
+        "type": "object",
+        "title": "PlayerUpdate"
+      },
+      "RatingHistoryRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "player_id": {
+            "type": "integer",
+            "title": "Player Id"
+          },
+          "game_type": {
+            "$ref": "#/components/schemas/GameType"
+          },
+          "match_id": {
+            "type": "integer",
+            "title": "Match Id"
+          },
+          "rating_before": {
+            "type": "integer",
+            "title": "Rating Before"
+          },
+          "rating_change": {
+            "type": "integer",
+            "title": "Rating Change"
+          },
+          "rating_after": {
+            "type": "integer",
+            "title": "Rating After"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "player_id",
+          "game_type",
+          "match_id",
+          "rating_before",
+          "rating_change",
+          "rating_after",
+          "created_at"
+        ],
+        "title": "RatingHistoryRead"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
