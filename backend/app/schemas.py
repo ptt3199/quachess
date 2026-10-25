@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -24,6 +25,7 @@ class PlayerRead(BaseModel):
     username: str
     name: str
     display_name: str
+    email: str | None = None
     active: bool
     created_at: datetime
 
@@ -53,6 +55,10 @@ class PlayerDetailRead(BaseModel):
     created_at: datetime
     ratings: PlayerRatingSummary
     stats: dict[str, CategoryStats]
+    # Current (quarterly) season replayed from matches inside the window
+    season_label: str = ""
+    season_ratings: dict[str, int] = {}
+    season_deltas: dict[str, int] = {}
 
 
 class LeaderboardEntry(BaseModel):
@@ -62,6 +68,7 @@ class LeaderboardEntry(BaseModel):
     display_name: str
     active: bool
     rating: int
+    tier: str = "WOOD"
     games_played: int
     wins: int
     draws: int
@@ -86,6 +93,17 @@ class MatchUpdate(BaseModel):
 
 class MatchResultRecord(BaseModel):
     result: MatchResult
+
+
+class AdhocResultCreate(BaseModel):
+    """Result recorded directly after an informal (un-scheduled) game.
+
+    `result` is from the reporting player's perspective.
+    """
+    opponent_id: int
+    game_type: GameType = GameType.RAPID
+    result: Literal["WIN", "DRAW", "LOSS"]
+    played_at: datetime | None = None
 
 
 class MatchRead(BaseModel):
@@ -156,9 +174,44 @@ class PlayerLogin(BaseModel):
     password: str
 
 
+class GoogleAuthIn(BaseModel):
+    """Google Identity Services ID token (credential)."""
+    credential: str
+
+
+class GoogleClientRead(BaseModel):
+    client_id: str | None = None
+
+
+class PlayerSelfUpdate(BaseModel):
+    display_name: str
+
+
 class PlayerStatus(BaseModel):
     authenticated: bool
     player: PlayerRead | None = None
+
+
+class PushKeys(BaseModel):
+    p256dh: str
+    auth: str
+
+
+class PushSubscribe(BaseModel):
+    endpoint: str
+    keys: PushKeys
+
+
+class PushUnsubscribe(BaseModel):
+    endpoint: str
+
+
+class VapidPublicKeyRead(BaseModel):
+    public_key: str | None = None
+
+
+class PushStatusRead(BaseModel):
+    enabled: bool
 
 
 class ChallengeCreate(BaseModel):
@@ -178,6 +231,7 @@ class ChallengeRead(BaseModel):
     sender_color: str
     scheduled_at: datetime
     status: str
+    match_id: int | None = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

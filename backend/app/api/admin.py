@@ -3,7 +3,9 @@ from fastapi_cache import FastAPICache
 from sqlmodel import delete, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.api.matches import notify_result
 from app.api.players import format_match_read
+from app.auth.hash import hash_password
 from app.auth.session import (
     COOKIE_NAME,
     MAX_AGE_SECONDS,
@@ -26,7 +28,6 @@ from app.schemas import (
     PlayerUpdate,
 )
 from app.services.elo import recalculate_all_ratings
-from app.auth.hash import hash_password
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -366,6 +367,13 @@ async def record_match_result(
     await clear_cache("matches")
     await clear_cache("rankings")
     await clear_cache("players")
+
+    # Notify both participants (admin recorded the result on their behalf)
+    w_player = await db.get(Player, match.white_player_id)
+    b_player = await db.get(Player, match.black_player_id)
+    if w_player and b_player:
+        for player, opponent in ((w_player, b_player), (b_player, w_player)):
+            await notify_result(db, match, player.id, opponent.id, opponent.display_name)
 
     return await format_match_read(match, db)
 

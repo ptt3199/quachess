@@ -1,4 +1,4 @@
-.PHONY: help dev test seed migrate build docker-build lint format deploy
+.PHONY: help dev test seed migrate build docker-build lint format deploy vapid-keys
 
 help:
 	@echo "Available commands:"
@@ -11,6 +11,7 @@ help:
 	@echo "  make build        - Build React frontend SPA into backend/static"
 	@echo "  make deploy       - Build frontend & deploy FastAPI to Cloud"
 	@echo "  make docker-build - Build production Docker container"
+	@echo "  make vapid-keys   - Generate Web Push VAPID keypair (env lines)"
 
 dev:
 	cd backend && uv run fastapi dev --port 8000
@@ -38,3 +39,6 @@ deploy: build
 
 docker-build:
 	docker build -t chess-club-app .
+
+vapid-keys:
+	cd backend && uv run python scripts/generate_vapid.py

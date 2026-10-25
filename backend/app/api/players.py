@@ -13,7 +13,8 @@ from app.schemas import (
     PlayerRead,
     RatingHistoryRead,
 )
-from app.services.elo import DEFAULT_INITIAL_RATING
+from app.services.elo import DEFAULT_INITIAL_RATING, replay_ratings
+from app.services.seasons import current_season
 
 router = APIRouter(prefix="/api/players", tags=["players"])
 
@@ -186,6 +187,22 @@ async def get_player_detail(
         if cat.games_played > 0:
             cat.win_rate = round((cat.wins / cat.games_played) * 100, 1)
 
+    # Current season ratings: replay in-window matches from the default rating
+    season = current_season()
+    season_matches = [
+        m
+        for m in matches
+        if m.played_at is not None and season.start <= m.played_at < season.end
+    ]
+    season_replay = replay_ratings(season_matches)
+    season_ratings: dict[str, int] = {}
+    season_deltas: dict[str, int] = {}
+    for gt in GameType:
+        gt_val = gt.value
+        rating = season_replay.get((pid, gt), DEFAULT_INITIAL_RATING)
+        season_ratings[gt_val] = rating
+        season_deltas[gt_val] = rating - DEFAULT_INITIAL_RATING
+
     return PlayerDetailRead(
         id=player.id,
         username=player.username,
@@ -199,4 +216,7 @@ async def get_player_detail(
             CLASSICAL=ratings[GameType.CLASSICAL.value],
         ),
         stats=stats,
+        season_label=season.label,
+        season_ratings=season_ratings,
+        season_deltas=season_deltas,
     )

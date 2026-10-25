@@ -75,3 +75,16 @@ export function formatRatingChange(change: number | null | undefined): string {
   if (change > 0) return `+${change}`;
   return `${change}`;
 }
+
+/** Label of the current quarterly season, e.g. "2026 Q4" (UTC). */
+export function currentSeasonLabel(): string {
+  const now = new Date();
+  const quarter = Math.floor(now.getUTCMonth() / 3) + 1;
+  return `${now.getUTCFullYear()} Q${quarter}`;
+}
+
+/** True when the completed match can still be revoked (within 24h of playing). */
+export function isRevocable(playedAt: string | null | undefined): boolean {
+  if (!playedAt) return false;
+  return Date.now() - new Date(playedAt).getTime() < 24 * 60 * 60 * 1000;
+}

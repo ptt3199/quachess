@@ -17,7 +17,7 @@ A production-ready, mobile-first web application built for Quaveo Chess Club. It
 
 ## 🛠️ Tech Stack
 
-- **Backend**: Python 3.14, FastAPI (FastAPI CLI / `fastapi[standard]`), SQLModel (SQLAlchemy 2.x + Pydantic v2), Uvicorn, Alembic.
+- **Backend**: Python 3.12+, FastAPI (FastAPI CLI / `fastapi[standard]`), SQLModel (SQLAlchemy 2.x + Pydantic v2), Uvicorn, Alembic.
 - **Database**: SQLite (Local Dev zero-dependency default) & PostgreSQL / Neon (Production).
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS v3, Lucide Icons, `openapi-typescript` + `openapi-fetch`.
 - **Package Managers**: `uv` for ultra-fast Python management in `backend/`, `pnpm` for `frontend/`.
@@ -27,7 +27,7 @@ A production-ready, mobile-first web application built for Quaveo Chess Club. It
 ## 🚀 Quick Start (Local Development)
 
 ### 1. Prerequisites
-- Python 3.14 & [`uv`](https://docs.astral.sh/uv/)
+- Python 3.12+ & [`uv`](https://docs.astral.sh/uv/)
 - Node.js v20+ & `pnpm`
 
 ### 2. Backend Setup

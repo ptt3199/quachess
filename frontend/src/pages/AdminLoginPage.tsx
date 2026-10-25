@@ -1,87 +1,77 @@
 import { useState } from 'react';
-import { api } from '../api/client';
-import { Shield, Lock } from 'lucide-react';
+import { Shield } from 'lucide-react';
 import type { AdminStatus } from '../types';
+import { api } from '../api/client';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { FormField, fieldControlClass } from '../components/ui/FormField';
+import { StatusMessage } from '../components/ui/StatusMessage';
 
 interface AdminLoginPageProps {
   onLoginSuccess: (status: AdminStatus) => void;
 }
 
-export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onLoginSuccess }) => {
-  const [username, setUsername] = useState('admin');
+export function AdminLoginPage({ onLoginSuccess }: AdminLoginPageProps) {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
     try {
-      setLoading(true);
-      setError(null);
-      const res = await api.adminLogin(username, password);
-      onLoginSuccess(res);
+      const status = await api.adminLogin(username, password);
+      onLoginSuccess(status);
     } catch (err: any) {
-      setError(err.message || 'Invalid username or password');
+      setError(err.message || 'Invalid admin credentials');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="pt-6 max-w-sm mx-auto">
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
+    <div className="pt-10 animate-fade-in">
+      <Card className="p-6 max-w-sm mx-auto space-y-4">
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
-            <Shield className="w-6 h-6" />
+          <div className="mx-auto w-12 h-12 rounded-2xl bg-night-700 border border-line text-brass-400 grid place-items-center">
+            <Shield className="w-6 h-6" aria-hidden="true" />
           </div>
-          <h1 className="text-xl font-bold text-slate-900">Admin Authentication</h1>
-          <p className="text-xs text-slate-500">Sign in to manage players, schedules, & results</p>
+          <h1 className="text-base font-bold text-white">Admin sign in</h1>
+          <p className="text-xs text-slate-500">Manage players and matches.</p>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 text-xs p-3 rounded-xl">
-            {error}
-          </div>
-        )}
+        {error && <StatusMessage type="error" message={error} />}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">
-              Admin Username
-            </label>
+          <FormField id="admin-username" label="Username" required>
             <input
+              id="admin-username"
               type="text"
+              required
+              autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              required
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+              className={fieldControlClass}
             />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">
-              Admin Password
-            </label>
+          </FormField>
+          <FormField id="admin-password" label="Password" required>
             <input
+              id="admin-password"
               type="password"
+              required
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
-              placeholder="••••••••"
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+              className={fieldControlClass}
             />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow-md transition disabled:opacity-50 flex items-center justify-center space-x-2"
-          >
-            <Lock className="w-4 h-4" />
-            <span>{loading ? 'Authenticating...' : 'Sign In as Admin'}</span>
-          </button>
+          </FormField>
+          <Button type="submit" fullWidth size="lg" loading={loading}>
+            Sign in
+          </Button>
         </form>
-      </div>
+      </Card>
     </div>
   );
-};
+}

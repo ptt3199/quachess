@@ -1,9 +1,10 @@
 import pytest
-from sqlmodel import SQLModel, delete
-from app.database import async_session_maker, engine
-from app.models import Match, Player, RatingHistory, Challenge
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
+from sqlmodel import SQLModel, delete
+
+from app.database import async_session_maker, engine
+from app.models import Challenge, Match, Player, RatingHistory
 
 
 @pytest.fixture(scope="session", autouse=True)

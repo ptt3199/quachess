@@ -3,7 +3,7 @@ name = "quaveo-chess"
 version = "0.1.0"
 description = "Quaveo Chess Club Rating & Schedule Web Application"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.12,<3.14"
 dependencies = [
     "aiosqlite>=0.20.0",
     "alembic>=1.13.0",
@@ -16,8 +16,20 @@ dependencies = [
     "pydantic-settings>=2.4.0",
     "redis>=4.2.0,<5.0.0",
     "sqlmodel>=0.0.22",
-    "uvicorn[standard]>=0.30.0",
+    "uvicorn>=0.30.0",
+    "pywebpush>=2.5.0",
 ]
+
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+exclude = ["tests*", "migrations*", "static*"]
 
 [dependency-groups]
 dev = [
@@ -33,7 +45,7 @@ app = "quaveo-chess"
 
 [tool.ruff]
 line-length = 100
-target-version = "py314"
+target-version = "py312"
 exclude = [
     ".venv",
     "migrations/versions/*",

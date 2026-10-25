@@ -32,6 +32,7 @@ class Player(SQLModel, table=True):
     password_hash: str
     name: str = Field(index=True)
     display_name: str
+    email: str | None = Field(default=None, index=True, unique=True)
     active: bool = Field(default=True, index=True)
     created_at: datetime = Field(default_factory=utc_now)
 
@@ -51,6 +52,7 @@ class Challenge(SQLModel, table=True):
     sender_color: str = Field(default="WHITE")  # "WHITE" or "BLACK"
     scheduled_at: datetime
     status: ChallengeStatus = Field(default=ChallengeStatus.PENDING, index=True)
+    match_id: int | None = Field(default=None, foreign_key="match.id")
     created_at: datetime = Field(default_factory=utc_now)
 
 
@@ -84,4 +86,13 @@ class RatingHistory(SQLModel, table=True):
     rating_before: int
     rating_change: int
     rating_after: int
+    created_at: datetime = Field(default_factory=utc_now)
+
+
+class PushSubscription(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    player_id: int = Field(foreign_key="player.id", index=True)
+    endpoint: str = Field(unique=True)
+    p256dh: str
+    auth: str
     created_at: datetime = Field(default_factory=utc_now)

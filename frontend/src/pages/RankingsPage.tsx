@@ -1,144 +1,163 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { ChevronRight, Trophy } from 'lucide-react';
 import type { GameType, LeaderboardEntry } from '../types';
 import { api } from '../api/client';
-import { RatingCategorySelector } from '../components/RatingCategorySelector';
-import { Trophy, ChevronRight } from 'lucide-react';
+import { queryKeys } from '../lib/queries';
+import { useAuth } from '../context/AuthContext';
+import { CategoryTabs } from '../components/CategoryTabs';
+import { TierBadge } from '../components/TierBadge';
+import { Card } from '../components/ui/Card';
+import { Avatar } from '../components/ui/Avatar';
+import { EmptyState } from '../components/ui/EmptyState';
+import { LoadingState } from '../components/ui/LoadingState';
+import { SegmentedControl } from '../components/ui/SegmentedControl';
+import { StatusMessage } from '../components/ui/StatusMessage';
+import { currentSeasonLabel } from '../utils/formatters';
 
-interface RankingsPageProps {
-  onSelectPlayer?: (playerId: number) => void;
+type SeasonView = 'current' | 'all';
+
+function rankBadge(rank: number) {
+  if (rank === 1) {
+    return (
+      <span className="w-8 h-8 rounded-full bg-brass-500 text-night-900 grid place-items-center font-black text-sm shadow-fab">
+        1
+      </span>
+    );
+  }
+  if (rank === 2) {
+    return (
+      <span className="w-8 h-8 rounded-full bg-slate-300/90 text-night-900 grid place-items-center font-black text-sm">
+        2
+      </span>
+    );
+  }
+  if (rank === 3) {
+    return (
+      <span className="w-8 h-8 rounded-full bg-amber-700 text-amber-100 grid place-items-center font-black text-sm">
+        3
+      </span>
+    );
+  }
+  return (
+    <span className="w-8 h-8 rounded-full bg-night-850 border border-line text-slate-400 grid place-items-center font-bold text-xs tabular">
+      {rank}
+    </span>
+  );
 }
 
-export const RankingsPage: React.FC<RankingsPageProps> = ({ onSelectPlayer: propsOnSelectPlayer }) => {
+export function RankingsPage() {
   const navigate = useNavigate();
-
-  const handleSelectPlayer = (id: number) => {
-    if (propsOnSelectPlayer) {
-      propsOnSelectPlayer(id);
-    } else {
-      navigate(`/players/${id}`);
-    }
-  };
+  const { player } = useAuth();
   const [category, setCategory] = useState<GameType>('RAPID');
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [season, setSeason] = useState<SeasonView>('current');
 
-  const fetchRankings = async (gt: GameType) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await api.getRankings(gt);
-      setLeaderboard(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load rankings');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const rankingsQuery = useQuery({
+    queryKey: [...queryKeys.rankings(category), season],
+    queryFn: () => api.getRankings(category, season),
+  });
 
-  useEffect(() => {
-    fetchRankings(category);
-  }, [category]);
-
-  const getRankBadge = (rank: number) => {
-    if (rank === 1) {
-      return (
-        <div className="w-7 h-7 rounded-full bg-amber-100 text-amber-600 font-bold flex items-center justify-center text-xs shadow-xs border border-amber-300">
-          👑
-        </div>
-      );
-    }
-    if (rank === 2) {
-      return (
-        <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-xs border border-slate-300">
-          2
-        </div>
-      );
-    }
-    if (rank === 3) {
-      return (
-        <div className="w-7 h-7 rounded-full bg-amber-900/10 text-amber-800 font-bold flex items-center justify-center text-xs border border-amber-700/20">
-          3
-        </div>
-      );
-    }
-    return (
-      <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-500 font-semibold flex items-center justify-center text-xs">
-        {rank}
-      </div>
-    );
-  };
+  const leaderboard: LeaderboardEntry[] = rankingsQuery.data ?? [];
+  const rankedPlayers = leaderboard.filter((entry) => entry.games_played > 0);
+  const unrated = leaderboard.filter((entry) => entry.games_played === 0);
 
   return (
-    <div className="space-y-4">
-      {/* Category selector */}
-      <div className="pt-2">
-        <RatingCategorySelector
-          selectedCategory={category}
-          onSelectCategory={(gt) => setCategory(gt)}
-        />
+    <div className="space-y-4 pt-1 animate-fade-in">
+      <div className="flex items-center justify-between px-1">
+        <h1 className="text-base font-bold text-white flex items-center gap-2">
+          <Trophy className="w-4 h-4 text-brass-400" aria-hidden="true" />
+          Leaderboard
+        </h1>
+        <span className="text-[11px] font-semibold text-slate-500">
+          {season === 'current' ? currentSeasonLabel() : 'All-time'}
+        </span>
       </div>
 
-      {/* Leaderboard Table / Card List */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Trophy className="w-4 h-4 text-blue-600" />
-            <h2 className="font-bold text-slate-800 text-sm">{category} Leaderboard</h2>
-          </div>
-          <span className="text-xs text-slate-500">{leaderboard.length} Players</span>
-        </div>
+      <CategoryTabs selectedCategory={category} onSelectCategory={setCategory} />
 
-        {loading ? (
-          <div className="p-8 text-center text-slate-400 space-y-2">
-            <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto" />
-            <p className="text-xs">Loading leaderboard...</p>
-          </div>
-        ) : error ? (
-          <div className="p-6 text-center text-red-500 text-sm">
-            {error}
-          </div>
-        ) : leaderboard.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 text-sm">
-            No active players found.
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {leaderboard.map((player) => (
+      <SegmentedControl
+        ariaLabel="Season view"
+        options={[
+          { value: 'current', label: 'This season' },
+          { value: 'all', label: 'All-time' },
+        ]}
+        value={season}
+        onChange={setSeason}
+        className="w-full"
+        size="sm"
+      />
+
+      {rankingsQuery.isLoading ? (
+        <LoadingState label="Loading leaderboard…" />
+      ) : rankingsQuery.isError ? (
+        <StatusMessage type="error" message={(rankingsQuery.error as Error).message} />
+      ) : rankedPlayers.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={<Trophy className="w-5 h-5" />}
+            title={`No ${category.toLowerCase()} games this season`}
+            hint="Play and record a game to enter the rankings."
+          />
+        </Card>
+      ) : (
+        <Card className="overflow-hidden divide-y divide-line">
+          {rankedPlayers.map((entry) => {
+            const isMe = player?.id === entry.id;
+            return (
               <button
-                key={player.id}
-                onClick={() => handleSelectPlayer(player.id)}
-                className="w-full text-left p-4 hover:bg-slate-50 active:bg-slate-100 transition flex items-center justify-between min-h-0 focus:outline-none"
+                key={entry.id}
+                type="button"
+                onClick={() => navigate(`/players/${entry.id}`)}
+                className={`w-full text-left p-3.5 flex items-center gap-3 transition-colors hover:bg-night-700 focus-visible:outline-none focus-visible:bg-night-700 ${
+                  isMe ? 'bg-brass-500/[0.07] border-l-2 border-brass-500' : ''
+                }`}
               >
-                <div className="flex items-center space-x-3">
-                  {getRankBadge(player.rank)}
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-sm leading-snug">
-                      {player.display_name}
-                    </h3>
-                    <p className="text-xs text-slate-500">
-                      {player.games_played} {player.games_played === 1 ? 'game' : 'games'} ({player.wins}W / {player.draws}D / {player.losses}L)
-                    </p>
-                  </div>
+                {rankBadge(entry.rank)}
+                <Avatar name={entry.display_name} size="sm" />
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-bold truncate ${isMe ? 'text-brass-300' : 'text-white'}`}>
+                    {entry.display_name}
+                    {isMe && <span className="ml-1.5 text-[10px] font-semibold text-brass-400">(you)</span>}
+                  </p>
+                  <p className="text-[11px] text-slate-500 tabular">
+                    {entry.games_played} games · {entry.wins}W {entry.draws}D {entry.losses}L
+                  </p>
                 </div>
+                <div className="flex flex-col items-end gap-1">
+                  <span className="text-base font-black tabular text-white leading-none">
+                    {entry.rating}
+                  </span>
+                  <TierBadge tier={entry.tier} />
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-600 shrink-0" aria-hidden="true" />
+              </button>
+            );
+          })}
+        </Card>
+      )}
 
-                <div className="flex items-center space-x-2">
-                  <div className="text-right">
-                    <span className="font-mono font-bold text-base text-slate-900">
-                      {player.rating}
-                    </span>
-                    <span className="text-[10px] text-slate-400 block font-medium uppercase">
-                      Elo
-                    </span>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-slate-300" />
-                </div>
+      {/* Unrated players */}
+      {unrated.length > 0 && (
+        <div className="px-1">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-slate-600 mb-2">
+            Not yet rated ({category.toLowerCase()})
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {unrated.map((entry) => (
+              <button
+                key={entry.id}
+                type="button"
+                onClick={() => navigate(`/players/${entry.id}`)}
+                className="flex items-center gap-1.5 h-8 pl-1 pr-2.5 rounded-full bg-night-850 border border-line hover:border-line-strong transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass-400/60"
+              >
+                <Avatar name={entry.display_name} size="xs" />
+                <span className="text-[11px] font-semibold text-slate-400">{entry.display_name}</span>
               </button>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
-};
+}

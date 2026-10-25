@@ -39,11 +39,19 @@ export const api = {
     return data!;
   },
 
-  getRankings: async (gameType: GameType = 'RAPID'): Promise<LeaderboardEntry[]> => {
+  getRankings: async (gameType: GameType = 'RAPID', season: string = 'current'): Promise<LeaderboardEntry[]> => {
     const { data, error } = await client.GET('/api/rankings', {
-      params: { query: { game_type: gameType } },
+      params: { query: { game_type: gameType, season } },
     });
     if (error) throw new Error('Failed to fetch rankings');
+    return data || [];
+  },
+
+  getMatches: async (params?: { game_type?: GameType; status?: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' }): Promise<Match[]> => {
+    const { data, error } = await client.GET('/api/matches', {
+      params: { query: { game_type: params?.game_type, status: params?.status } },
+    });
+    if (error) throw new Error('Failed to fetch matches');
     return data || [];
   },
 
@@ -165,7 +173,7 @@ export const api = {
   },
 
   // Player Auth APIs
-  playerSignUp: async (signupData: components['schemas']['PlayerSignup']): Promise<Player> => {
+  playerSignUp: async (signupData: components['schemas']['PlayerSignup']): Promise<PlayerStatus> => {
     const { data, error } = await client.POST('/api/players/signup', {
       body: signupData,
     });
@@ -190,6 +198,26 @@ export const api = {
   getPlayerMe: async (): Promise<PlayerStatus> => {
     const { data, error } = await client.GET('/api/players/me');
     if (error) throw new Error('Not logged in');
+    return data!;
+  },
+
+  updateMe: async (payload: { display_name: string }): Promise<PlayerStatus> => {
+    const { data, error } = await client.PATCH('/api/players/me', { body: payload });
+    if (error) throw new Error((error as any).detail || 'Failed to update profile');
+    return data!;
+  },
+
+  getGoogleClientId: async (): Promise<string | null> => {
+    const { data, error } = await client.GET('/api/players/google/client-id');
+    if (error) throw new Error('Failed to fetch Google sign-in config');
+    return data?.client_id ?? null;
+  },
+
+  googleLogin: async (credential: string): Promise<PlayerStatus> => {
+    const { data, error } = await client.POST('/api/players/google', {
+      body: { credential },
+    });
+    if (error) throw new Error((error as any).detail || 'Google sign-in failed');
     return data!;
   },
 
@@ -254,5 +282,50 @@ export const api = {
     });
     if (error) throw new Error((error as any).detail || 'Failed to cancel match');
     return data!;
+  },
+
+  createAdhocResult: async (payload: {
+    opponent_id: number;
+    game_type: GameType;
+    result: 'WIN' | 'DRAW' | 'LOSS';
+    played_at?: string;
+  }): Promise<Match> => {
+    const { data, error } = await client.POST('/api/matches/adhoc', { body: payload });
+    if (error) throw new Error((error as any).detail || 'Failed to record result');
+    return data!;
+  },
+
+  revokeMatchResult: async (matchId: number): Promise<Match> => {
+    const { data, error } = await client.POST('/api/matches/{match_id}/revoke', {
+      params: { path: { match_id: matchId } },
+    });
+    if (error) throw new Error((error as any).detail || 'Failed to revoke result');
+    return data!;
+  },
+
+  // Push APIs
+  getVapidPublicKey: async (): Promise<string | null> => {
+    const { data, error } = await client.GET('/api/push/vapid-public-key');
+    if (error) throw new Error('Failed to fetch push configuration');
+    return data?.public_key ?? null;
+  },
+
+  getPushStatus: async (): Promise<{ enabled: boolean }> => {
+    const { data, error } = await client.GET('/api/push/status');
+    if (error) throw new Error('Failed to fetch push status');
+    return data!;
+  },
+
+  subscribePush: async (subscription: {
+    endpoint: string;
+    keys: { p256dh: string; auth: string };
+  }): Promise<void> => {
+    const { error } = await client.POST('/api/push/subscribe', { body: subscription });
+    if (error) throw new Error('Failed to enable notifications');
+  },
+
+  unsubscribePush: async (endpoint: string): Promise<void> => {
+    const { error } = await client.POST('/api/push/unsubscribe', { body: { endpoint } });
+    if (error) throw new Error('Failed to disable notifications');
   },
 };

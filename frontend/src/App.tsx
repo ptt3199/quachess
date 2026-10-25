@@ -1,174 +1,87 @@
-import { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import type { AdminStatus, PlayerStatus, Challenge } from './types';
-import { api } from './api/client';
+import { useState } from 'react';
+import { Navigate, Route, Routes, useParams } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { ConfirmProvider } from './components/ui/ConfirmDialog';
+import { ToastProvider } from './components/ui/Toast';
 import { Header } from './components/Header';
-import { MobileNav } from './components/MobileNav';
+import { TabBar } from './components/TabBar';
+import { HomePage } from './pages/HomePage';
 import { RankingsPage } from './pages/RankingsPage';
 import { MatchesPage } from './pages/MatchesPage';
-import { SchedulePage } from './pages/SchedulePage';
 import { PlayerDetailPage } from './pages/PlayerDetailPage';
+import { MePage } from './pages/MePage';
 import { AdminLoginPage } from './pages/AdminLoginPage';
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { PwaUpdatePrompt } from './components/PwaUpdatePrompt';
-import { PlayerAuthModal } from './components/PlayerAuthModal';
-import { ChallengesInbox } from './components/ChallengesInbox';
+import { AuthSheet } from './components/AuthSheet';
+import { InboxSheet } from './components/InboxSheet';
+import { RecordResultSheet } from './components/RecordResultSheet';
 
-export function App() {
-  const [adminStatus, setAdminStatus] = useState<AdminStatus | null>(null);
-  const [playerStatus, setPlayerStatus] = useState<PlayerStatus | null>(null);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isInboxOpen, setIsInboxOpen] = useState(false);
-  const [receivedChallenges, setReceivedChallenges] = useState<Challenge[]>([]);
-  
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    // Check initial admin auth status
-    api
-      .getAdminStatus()
-      .then((status) => setAdminStatus(status))
-      .catch(() => setAdminStatus({ authenticated: false, username: null }));
-
-    // Check initial player auth status
-    api
-      .getPlayerMe()
-      .then((status) => setPlayerStatus(status))
-      .catch(() => setPlayerStatus({ authenticated: false, player: null }));
-  }, []);
-
-  // Poll for received challenges (notification system)
-  useEffect(() => {
-    if (playerStatus?.authenticated) {
-      const fetchCount = () => {
-        api.getChallengesReceived()
-          .then(setReceivedChallenges)
-          .catch(() => {});
-      };
-      fetchCount();
-      const interval = setInterval(fetchCount, 30000);
-      return () => clearInterval(interval);
-    } else {
-      setReceivedChallenges([]);
-    }
-  }, [playerStatus]);
-
-  const handleLogoutPlayer = async () => {
-    try {
-      await api.playerLogout();
-      setPlayerStatus({ authenticated: false, player: null });
-      navigate('/');
-    } catch (err) {
-      console.error('Logout failed', err);
-    }
-  };
-
-  const handleSelectPlayer = (idOrName: number | string) => {
-    navigate(`/players/${idOrName}`);
-  };
-
-  const handleRefreshMatches = () => {
-    // Triggers matches update on active route if needed, or simple redirect/reload
-    // Refreshing list matches in inbox
-    api.getChallengesReceived().then(setReceivedChallenges).catch(() => {});
-  };
-
-  const renderAdminRoute = () => (
-    adminStatus?.authenticated ? (
-      <AdminDashboardPage
-        onLogout={() => setAdminStatus({ authenticated: false, username: null })}
-      />
-    ) : (
-      <AdminLoginPage
-        onLoginSuccess={(status) => {
-          setAdminStatus(status);
-        }}
-      />
-    )
+function AdminRoute() {
+  const { isAdminAuthed, setAdminStatus } = useAuth();
+  return isAdminAuthed ? (
+    <AdminDashboardPage onLogout={() => setAdminStatus({ authenticated: false, username: null })} />
+  ) : (
+    <AdminLoginPage onLoginSuccess={setAdminStatus} />
   );
+}
 
-  const renderPlayerDetailRoute = () => (
-    <PlayerDetailPage
-      adminStatus={adminStatus}
-      playerStatus={playerStatus}
-      onSelectPlayer={handleSelectPlayer}
-    />
-  );
+function UserRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/players/${id}`} replace />;
+}
+
+function AppShell() {
+  const [authOpen, setAuthOpen] = useState(false);
+  const [inboxOpen, setInboxOpen] = useState(false);
+  const [recordOpen, setRecordOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
-      <Header
-        adminStatus={adminStatus}
-        playerStatus={playerStatus}
-        onLogoutPlayer={handleLogoutPlayer}
-        onLoginPlayerClick={() => setIsAuthModalOpen(true)}
-        onInboxClick={() => setIsInboxOpen(true)}
-        pendingCount={receivedChallenges.length}
-      />
+    <div className="min-h-screen flex flex-col">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-3 focus:py-2 focus:rounded-lg focus:bg-brass-500 focus:text-night-900 focus:font-bold"
+      >
+        Skip to content
+      </a>
 
-      <main className="flex-1 max-w-md w-full mx-auto px-4 pb-24">
+      <Header onLoginClick={() => setAuthOpen(true)} onInboxClick={() => setInboxOpen(true)} />
+
+      <main id="main-content" tabIndex={-1} className="flex-1 w-full max-w-md mx-auto px-4 pt-3 pb-28">
         <Routes>
-          {/* Rankings / Leaderboard */}
-          <Route path="/" element={<RankingsPage onSelectPlayer={handleSelectPlayer} />} />
-
-          {/* Matches History */}
-          <Route path="/matches" element={<MatchesPage onSelectPlayer={handleSelectPlayer} />} />
-          <Route path="/matches/" element={<MatchesPage onSelectPlayer={handleSelectPlayer} />} />
-
-          {/* Schedule & Direct Result Entry */}
-          <Route
-            path="/schedule"
-            element={
-              <SchedulePage
-                adminStatus={adminStatus}
-                playerStatus={playerStatus}
-                onSelectPlayer={handleSelectPlayer}
-              />
-            }
-          />
-          <Route
-            path="/schedule/"
-            element={
-              <SchedulePage
-                adminStatus={adminStatus}
-                playerStatus={playerStatus}
-                onSelectPlayer={handleSelectPlayer}
-              />
-            }
-          />
-
-          {/* Player Profiles */}
-          <Route path="/players/:id" element={renderPlayerDetailRoute()} />
-          <Route path="/players/:id/" element={renderPlayerDetailRoute()} />
-          <Route path="/users/:id" element={renderPlayerDetailRoute()} />
-          <Route path="/users/:id/" element={renderPlayerDetailRoute()} />
-
-          {/* Admin Dashboard */}
-          <Route path="/admin" element={renderAdminRoute()} />
-          <Route path="/admin/" element={renderAdminRoute()} />
-
-          {/* Fallback */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/rankings" element={<RankingsPage />} />
+          <Route path="/matches" element={<MatchesPage />} />
+          <Route path="/players/:id" element={<PlayerDetailPage />} />
+          <Route path="/me" element={<MePage />} />
+          <Route path="/admin" element={<AdminRoute />} />
+          <Route path="/schedule" element={<Navigate to="/matches" replace />} />
+          <Route path="/users/:id" element={<UserRedirect />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
 
-      <MobileNav />
+      <TabBar onRecord={() => setRecordOpen(true)} />
       <PwaUpdatePrompt />
 
-      {/* Modals */}
-      <PlayerAuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        onLoginSuccess={(status) => setPlayerStatus(status)}
-      />
-
-      <ChallengesInbox
-        isOpen={isInboxOpen}
-        onClose={() => setIsInboxOpen(false)}
-        onRefreshMatches={handleRefreshMatches}
-      />
+      <AuthSheet isOpen={authOpen} onClose={() => setAuthOpen(false)} />
+      <InboxSheet isOpen={inboxOpen} onClose={() => setInboxOpen(false)} />
+      <RecordResultSheet isOpen={recordOpen} onClose={() => setRecordOpen(false)} onSignIn={() => setAuthOpen(true)} />
     </div>
   );
 }
 
+export function App() {
+  return (
+    <AuthProvider>
+      <ToastProvider>
+        <ConfirmProvider>
+          <AppShell />
+        </ConfirmProvider>
+      </ToastProvider>
+    </AuthProvider>
+  );
+}
+
 export default App;
+

@@ -64,6 +64,28 @@ def calculate_new_ratings(
     )
 
 
+def replay_ratings(
+    matches, initial: int = DEFAULT_INITIAL_RATING
+) -> dict[tuple[int, GameType], int]:
+    """Replay a chronological list of completed matches and return the final
+    rating per (player_id, game_type), starting everyone at `initial`."""
+    ratings: dict[tuple[int, GameType], int] = {}
+    for match in matches:
+        if not match.result:
+            continue
+        w_id = match.white_player_id
+        b_id = match.black_player_id
+        gt = match.game_type
+        white_before = ratings.get((w_id, gt), initial)
+        black_before = ratings.get((b_id, gt), initial)
+        _w_chg, _b_chg, w_after, b_after = calculate_new_ratings(
+            white_before, black_before, match.result
+        )
+        ratings[(w_id, gt)] = w_after
+        ratings[(b_id, gt)] = b_after
+    return ratings
+
+
 async def recalculate_all_ratings(session: AsyncSession) -> None:
     """
     Deterministically rebuild all ratings and rating history from completed matches.

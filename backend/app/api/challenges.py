@@ -1,4 +1,6 @@
 import random
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi_cache import FastAPICache
 from sqlalchemy.orm import aliased
@@ -9,6 +11,10 @@ from app.auth.session import require_player
 from app.database import get_db
 from app.models import Challenge, ChallengeStatus, Match, MatchStatus, Player, utc_now
 from app.schemas import ChallengeCreate, ChallengeRead
+from app.services.push import send_to_player
+
+# Pending challenges older than this are hidden from the inbox (stale invites).
+PENDING_TTL = timedelta(days=7)
 
 router = APIRouter(prefix="/api/challenges", tags=["challenges"])
 
@@ -16,6 +22,22 @@ router = APIRouter(prefix="/api/challenges", tags=["challenges"])
 async def clear_cache(namespace: str):
     if FastAPICache._backend is not None:
         await FastAPICache.clear(namespace=namespace)
+
+
+def challenge_read(challenge: Challenge, sender_name: str, receiver_name: str) -> ChallengeRead:
+    return ChallengeRead(
+        id=challenge.id,
+        sender_id=challenge.sender_id,
+        receiver_id=challenge.receiver_id,
+        sender_name=sender_name,
+        receiver_name=receiver_name,
+        game_type=challenge.game_type,
+        sender_color=challenge.sender_color,
+        scheduled_at=challenge.scheduled_at,
+        status=challenge.status,
+        match_id=challenge.match_id,
+        created_at=challenge.created_at,
+    )
 
 
 @router.post("", response_model=ChallengeRead)
@@ -57,18 +79,15 @@ async def create_challenge(
     await db.commit()
     await db.refresh(challenge)
 
-    return ChallengeRead(
-        id=challenge.id,
-        sender_id=challenge.sender_id,
-        receiver_id=challenge.receiver_id,
-        sender_name=current_player.display_name,
-        receiver_name=receiver.display_name,
-        game_type=challenge.game_type,
-        sender_color=challenge.sender_color,
-        scheduled_at=challenge.scheduled_at,
-        status=challenge.status,
-        created_at=challenge.created_at,
+    await send_to_player(
+        db,
+        payload.receiver_id,
+        title="New challenge",
+        body=f"{current_player.display_name} challenged you ({challenge.game_type.value.title()}).",
+        url="/",
     )
+
+    return challenge_read(challenge, current_player.display_name, receiver.display_name)
 
 
 @router.get("/received", response_model=list[ChallengeRead])
@@ -85,28 +104,15 @@ async def list_received_challenges(
         .join(Receiver, Challenge.receiver_id == Receiver.id)
         .where(Challenge.receiver_id == current_player.id)
         .where(Challenge.status == ChallengeStatus.PENDING)
+        .where(Challenge.created_at >= utc_now() - PENDING_TTL)
         .order_by(Challenge.created_at.desc())
     )
     res = await db.execute(stmt)
 
-    results = []
-    for row in res.all():
-        challenge, sender_name, receiver_name = row
-        results.append(
-            ChallengeRead(
-                id=challenge.id,
-                sender_id=challenge.sender_id,
-                receiver_id=challenge.receiver_id,
-                sender_name=sender_name,
-                receiver_name=receiver_name,
-                game_type=challenge.game_type,
-                sender_color=challenge.sender_color,
-                scheduled_at=challenge.scheduled_at,
-                status=challenge.status,
-                created_at=challenge.created_at,
-            )
-        )
-    return results
+    return [
+        challenge_read(challenge, sender_name, receiver_name)
+        for challenge, sender_name, receiver_name in res.all()
+    ]
 
 
 @router.get("/sent", response_model=list[ChallengeRead])
@@ -126,24 +132,10 @@ async def list_sent_challenges(
     )
     res = await db.execute(stmt)
 
-    results = []
-    for row in res.all():
-        challenge, sender_name, receiver_name = row
-        results.append(
-            ChallengeRead(
-                id=challenge.id,
-                sender_id=challenge.sender_id,
-                receiver_id=challenge.receiver_id,
-                sender_name=sender_name,
-                receiver_name=receiver_name,
-                game_type=challenge.game_type,
-                sender_color=challenge.sender_color,
-                scheduled_at=challenge.scheduled_at,
-                status=challenge.status,
-                created_at=challenge.created_at,
-            )
-        )
-    return results
+    return [
+        challenge_read(challenge, sender_name, receiver_name)
+        for challenge, sender_name, receiver_name in res.all()
+    ]
 
 
 @router.post("/{challenge_id}/accept", response_model=ChallengeRead)
@@ -189,7 +181,7 @@ async def accept_challenge(
         white_id = challenge.receiver_id
         black_id = challenge.sender_id
 
-    # Create the scheduled match
+    # Create the scheduled match and link it back to this challenge
     match = Match(
         white_player_id=white_id,
         black_player_id=black_id,
@@ -198,24 +190,24 @@ async def accept_challenge(
         status=MatchStatus.SCHEDULED,
     )
     db.add(match)
+    await db.flush()
+    challenge.match_id = match.id
+    db.add(challenge)
     await db.commit()
     await db.refresh(challenge)
 
     # Clear caches since list of scheduled matches changes
     await clear_cache("matches")
 
-    return ChallengeRead(
-        id=challenge.id,
-        sender_id=challenge.sender_id,
-        receiver_id=challenge.receiver_id,
-        sender_name=sender.display_name,
-        receiver_name=current_player.display_name,
-        game_type=challenge.game_type,
-        sender_color=challenge.sender_color,
-        scheduled_at=challenge.scheduled_at,
-        status=challenge.status,
-        created_at=challenge.created_at,
+    await send_to_player(
+        db,
+        challenge.sender_id,
+        title="Challenge accepted",
+        body=f"{current_player.display_name} accepted your challenge. Play when ready!",
+        url="/matches",
     )
+
+    return challenge_read(challenge, sender.display_name, current_player.display_name)
 
 
 @router.post("/{challenge_id}/decline", response_model=ChallengeRead)
@@ -251,18 +243,15 @@ async def decline_challenge(
     sender = await db.get(Player, challenge.sender_id)
     sender_name = sender.display_name if sender else "Unknown"
 
-    return ChallengeRead(
-        id=challenge.id,
-        sender_id=challenge.sender_id,
-        receiver_id=challenge.receiver_id,
-        sender_name=sender_name,
-        receiver_name=current_player.display_name,
-        game_type=challenge.game_type,
-        sender_color=challenge.sender_color,
-        scheduled_at=challenge.scheduled_at,
-        status=challenge.status,
-        created_at=challenge.created_at,
+    await send_to_player(
+        db,
+        challenge.sender_id,
+        title="Challenge declined",
+        body=f"{current_player.display_name} declined your challenge.",
+        url="/",
     )
+
+    return challenge_read(challenge, sender_name, current_player.display_name)
 
 
 @router.post("/{challenge_id}/cancel", response_model=ChallengeRead)
@@ -298,15 +287,4 @@ async def cancel_challenge(
     receiver = await db.get(Player, challenge.receiver_id)
     receiver_name = receiver.display_name if receiver else "Unknown"
 
-    return ChallengeRead(
-        id=challenge.id,
-        sender_id=challenge.sender_id,
-        receiver_id=challenge.receiver_id,
-        sender_name=current_player.display_name,
-        receiver_name=receiver_name,
-        game_type=challenge.game_type,
-        sender_color=challenge.sender_color,
-        scheduled_at=challenge.scheduled_at,
-        status=challenge.status,
-        created_at=challenge.created_at,
-    )
+    return challenge_read(challenge, current_player.display_name, receiver_name)

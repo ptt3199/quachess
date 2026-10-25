@@ -5,12 +5,43 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi_cache import FastAPICache
+from sqlalchemy import text
 from sqlmodel import SQLModel
 
-from app.api import admin, auth, challenges, matches, players, rankings
+from app.api import admin, auth, challenges, matches, players, push, rankings
 from app.config import settings
 from app.database import engine
-from fastapi_cache import FastAPICache
+
+
+async def ensure_schema_upgrades() -> None:
+    """Idempotent DDL for deployments whose DB was created via create_all
+    (alembic may not have run there). Safe to execute on every startup."""
+    async with engine.begin() as conn:
+        if conn.dialect.name == "sqlite":
+            columns = await conn.execute(text("PRAGMA table_info(challenge)"))
+            has_match_id = any(row[1] == "match_id" for row in columns.fetchall())
+            if not has_match_id:
+                await conn.execute(text("ALTER TABLE challenge ADD COLUMN match_id INTEGER"))
+            player_columns = await conn.execute(text("PRAGMA table_info(player)"))
+            has_email = any(row[1] == "email" for row in player_columns.fetchall())
+            if not has_email:
+                await conn.execute(text("ALTER TABLE player ADD COLUMN email VARCHAR"))
+        else:
+            # Postgres & MySQL support IF NOT EXISTS for ADD COLUMN
+            await conn.execute(
+                text("ALTER TABLE challenge ADD COLUMN IF NOT EXISTS match_id INTEGER")
+            )
+            await conn.execute(
+                text("ALTER TABLE player ADD COLUMN IF NOT EXISTS email VARCHAR")
+            )
+        # Unique index on email (partial: NULLs allowed for password-only accounts)
+        await conn.execute(
+            text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_player_email_unique "
+                "ON player (email) WHERE email IS NOT NULL"
+            )
+        )
 
 
 @asynccontextmanager
@@ -18,6 +49,7 @@ async def lifespan(app: FastAPI):
     # Ensure DB tables exist on startup (especially for SQLite local dev)
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
+    await ensure_schema_upgrades()
 
     # Initialize Cache
     if settings.REDIS_URL:
@@ -49,10 +81,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS middleware for development
+# CORS for the Vite dev server (prod SPA is same-origin and needs no CORS)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -65,6 +97,7 @@ app.include_router(rankings.router)
 app.include_router(matches.router)
 app.include_router(admin.router)
 app.include_router(challenges.router)
+app.include_router(push.router)
 
 
 @app.get("/health")

@@ -8,13 +8,17 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['favicon.svg', 'icons.svg'],
+      // Custom SW (src/sw.ts) adds web-push handlers on top of Workbox caching
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      includeAssets: ['favicon.svg'],
       manifest: {
         name: 'Quaveo Chess Club',
         short_name: 'Quaveo Chess',
         description: 'Rating & Schedule Web Application for Quaveo Chess Club',
-        theme_color: '#0f172a',
-        background_color: '#f8fafc',
+        theme_color: '#0B1120',
+        background_color: '#0B1120',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
@@ -23,53 +27,18 @@ export default defineConfig({
             src: 'favicon.svg',
             sizes: '192x192 512x512',
             type: 'image/svg+xml',
-            purpose: 'any maskable',
+            purpose: 'any',
+          },
+          {
+            src: 'favicon.svg',
+            sizes: '192x192 512x512',
+            type: 'image/svg+xml',
+            purpose: 'maskable',
           },
         ],
       },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-        runtimeCaching: [
-          {
-            urlPattern: ({ url }) => url.pathname.startsWith('/api/admin'),
-            handler: 'NetworkOnly',
-          },
-          {
-            urlPattern: ({ url }) =>
-              url.pathname === '/api/rankings' ||
-              url.pathname === '/api/players' ||
-              /^\/api\/players\/[^/]+$/.test(url.pathname),
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'api-data-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 24 * 60 * 60, // 24 hours
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-          {
-            urlPattern: ({ url }) =>
-              url.pathname.startsWith('/api/matches') ||
-              /^\/api\/players\/[^/]+\/matches$/.test(url.pathname) ||
-              /^\/api\/players\/[^/]+\/rating-history$/.test(url.pathname),
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-matches-cache',
-              networkTimeoutSeconds: 5,
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 7 * 24 * 60 * 60, // 7 days
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-        ],
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
       },
     }),
   ],

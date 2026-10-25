@@ -1,0 +1,4 @@
+backend/test-results/
+frontend/test-results/
+.DS_Store
+.zcode/

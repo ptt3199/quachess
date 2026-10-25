@@ -28,7 +28,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PlayerRead"
+                  "$ref": "#/components/schemas/PlayerStatus"
                 }
               }
             }
@@ -58,6 +58,69 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PlayerLogin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/players/google/client-id": {
+      "get": {
+        "tags": [
+          "player-auth"
+        ],
+        "summary": "Get Google Client Id",
+        "operationId": "get_google_client_id_api_players_google_client_id_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleClientRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/players/google": {
+      "post": {
+        "tags": [
+          "player-auth"
+        ],
+        "summary": "Player Google Login",
+        "description": "Sign in (or register) with a Google ID token from Google Identity Services.",
+        "operationId": "player_google_login_api_players_google_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleAuthIn"
               }
             }
           },
@@ -122,6 +185,46 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PlayerStatus"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "player-auth"
+        ],
+        "summary": "Player Update Profile",
+        "description": "Update your own display name (nickname shown on the leaderboard).",
+        "operationId": "player_update_profile_api_players_me_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlayerSelfUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -356,7 +459,17 @@
             "required": false,
             "schema": {
               "$ref": "#/components/schemas/GameType",
-              "default": "BLITZ"
+              "default": "RAPID"
+            }
+          },
+          {
+            "name": "season",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "current",
+              "title": "Season"
             }
           }
         ],
@@ -557,6 +670,91 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/matches/adhoc": {
+      "post": {
+        "tags": [
+          "matches"
+        ],
+        "summary": "Create Adhoc Result",
+        "description": "Record the result of an informal game that was never scheduled.",
+        "operationId": "create_adhoc_result_api_matches_adhoc_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdhocResultCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/matches/{match_id}/revoke": {
+      "post": {
+        "tags": [
+          "matches"
+        ],
+        "summary": "Revoke Match Result",
+        "description": "Undo a completed match (e.g. recorded by mistake). Participants may revoke\nwithin 24h of playing; ratings are fully recalculated afterwards.",
+        "operationId": "revoke_match_result_api_matches__match_id__revoke_post",
+        "parameters": [
+          {
+            "name": "match_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Match Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1262,6 +1460,116 @@
         }
       }
     },
+    "/api/push/vapid-public-key": {
+      "get": {
+        "tags": [
+          "push"
+        ],
+        "summary": "Get Vapid Public Key",
+        "operationId": "get_vapid_public_key_api_push_vapid_public_key_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VapidPublicKeyRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/push/status": {
+      "get": {
+        "tags": [
+          "push"
+        ],
+        "summary": "Push Status",
+        "operationId": "push_status_api_push_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushStatusRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/push/subscribe": {
+      "post": {
+        "tags": [
+          "push"
+        ],
+        "summary": "Subscribe",
+        "operationId": "subscribe_api_push_subscribe_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushSubscribe"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/push/unsubscribe": {
+      "post": {
+        "tags": [
+          "push"
+        ],
+        "summary": "Unsubscribe",
+        "operationId": "unsubscribe_api_push_unsubscribe_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushUnsubscribe"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health Check",
@@ -1318,6 +1626,46 @@
   },
   "components": {
     "schemas": {
+      "AdhocResultCreate": {
+        "properties": {
+          "opponent_id": {
+            "type": "integer",
+            "title": "Opponent Id"
+          },
+          "game_type": {
+            "$ref": "#/components/schemas/GameType",
+            "default": "RAPID"
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "WIN",
+              "DRAW",
+              "LOSS"
+            ],
+            "title": "Result"
+          },
+          "played_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Played At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "opponent_id",
+          "result"
+        ],
+        "title": "AdhocResultCreate",
+        "description": "Result recorded directly after an informal (un-scheduled) game.\n\n`result` is from the reporting player's perspective."
+      },
       "AdminLogin": {
         "properties": {
           "username": {
@@ -1463,6 +1811,17 @@
             "type": "string",
             "title": "Status"
           },
+          "match_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Match Id"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -1526,6 +1885,37 @@
         ],
         "title": "GameType"
       },
+      "GoogleAuthIn": {
+        "properties": {
+          "credential": {
+            "type": "string",
+            "title": "Credential"
+          }
+        },
+        "type": "object",
+        "required": [
+          "credential"
+        ],
+        "title": "GoogleAuthIn",
+        "description": "Google Identity Services ID token (credential)."
+      },
+      "GoogleClientRead": {
+        "properties": {
+          "client_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Id"
+          }
+        },
+        "type": "object",
+        "title": "GoogleClientRead"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1564,6 +1954,11 @@
           "rating": {
             "type": "integer",
             "title": "Rating"
+          },
+          "tier": {
+            "type": "string",
+            "title": "Tier",
+            "default": "WOOD"
           },
           "games_played": {
             "type": "integer",
@@ -1954,6 +2349,27 @@
             },
             "type": "object",
             "title": "Stats"
+          },
+          "season_label": {
+            "type": "string",
+            "title": "Season Label",
+            "default": ""
+          },
+          "season_ratings": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Season Ratings",
+            "default": {}
+          },
+          "season_deltas": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Season Deltas",
+            "default": {}
           }
         },
         "type": "object",
@@ -2026,6 +2442,17 @@
             "type": "string",
             "title": "Display Name"
           },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
           "active": {
             "type": "boolean",
             "title": "Active"
@@ -2046,6 +2473,19 @@
           "created_at"
         ],
         "title": "PlayerRead"
+      },
+      "PlayerSelfUpdate": {
+        "properties": {
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "display_name"
+        ],
+        "title": "PlayerSelfUpdate"
       },
       "PlayerSignup": {
         "properties": {
@@ -2148,6 +2588,67 @@
         "type": "object",
         "title": "PlayerUpdate"
       },
+      "PushKeys": {
+        "properties": {
+          "p256dh": {
+            "type": "string",
+            "title": "P256Dh"
+          },
+          "auth": {
+            "type": "string",
+            "title": "Auth"
+          }
+        },
+        "type": "object",
+        "required": [
+          "p256dh",
+          "auth"
+        ],
+        "title": "PushKeys"
+      },
+      "PushStatusRead": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "title": "PushStatusRead"
+      },
+      "PushSubscribe": {
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "title": "Endpoint"
+          },
+          "keys": {
+            "$ref": "#/components/schemas/PushKeys"
+          }
+        },
+        "type": "object",
+        "required": [
+          "endpoint",
+          "keys"
+        ],
+        "title": "PushSubscribe"
+      },
+      "PushUnsubscribe": {
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "title": "Endpoint"
+          }
+        },
+        "type": "object",
+        "required": [
+          "endpoint"
+        ],
+        "title": "PushUnsubscribe"
+      },
       "RatingHistoryRead": {
         "properties": {
           "id": {
@@ -2235,6 +2736,23 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "VapidPublicKeyRead": {
+        "properties": {
+          "public_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Key"
+          }
+        },
+        "type": "object",
+        "title": "VapidPublicKeyRead"
       }
     }
   }

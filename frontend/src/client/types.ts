@@ -38,6 +38,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/players/google/client-id": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Google Client Id */
+        get: operations["get_google_client_id_api_players_google_client_id_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/players/google": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Player Google Login
+         * @description Sign in (or register) with a Google ID token from Google Identity Services.
+         */
+        post: operations["player_google_login_api_players_google_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/players/logout": {
         parameters: {
             query?: never;
@@ -69,7 +106,11 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Player Update Profile
+         * @description Update your own display name (nickname shown on the leaderboard).
+         */
+        patch: operations["player_update_profile_api_players_me_patch"];
         trace?: never;
     };
     "/api/players": {
@@ -219,6 +260,47 @@ export interface paths {
         put?: never;
         /** Player Record Match Result */
         post: operations["player_record_match_result_api_matches__match_id__result_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/matches/adhoc": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Adhoc Result
+         * @description Record the result of an informal game that was never scheduled.
+         */
+        post: operations["create_adhoc_result_api_matches_adhoc_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/matches/{match_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke Match Result
+         * @description Undo a completed match (e.g. recorded by mistake). Participants may revoke
+         *     within 24h of playing; ratings are fully recalculated afterwards.
+         */
+        post: operations["revoke_match_result_api_matches__match_id__revoke_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -515,6 +597,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/push/vapid-public-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vapid Public Key */
+        get: operations["get_vapid_public_key_api_push_vapid_public_key_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/push/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Push Status */
+        get: operations["push_status_api_push_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/push/subscribe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Subscribe */
+        post: operations["subscribe_api_push_subscribe_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/push/unsubscribe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unsubscribe */
+        post: operations["unsubscribe_api_push_unsubscribe_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -553,6 +703,25 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AdhocResultCreate
+         * @description Result recorded directly after an informal (un-scheduled) game.
+         *
+         *     `result` is from the reporting player's perspective.
+         */
+        AdhocResultCreate: {
+            /** Opponent Id */
+            opponent_id: number;
+            /** @default RAPID */
+            game_type: components["schemas"]["GameType"];
+            /**
+             * Result
+             * @enum {string}
+             */
+            result: "WIN" | "DRAW" | "LOSS";
+            /** Played At */
+            played_at?: string | null;
+        };
         /** AdminLogin */
         AdminLogin: {
             /** Username */
@@ -630,6 +799,8 @@ export interface components {
             scheduled_at: string;
             /** Status */
             status: string;
+            /** Match Id */
+            match_id?: number | null;
             /**
              * Created At
              * Format: date-time
@@ -654,6 +825,19 @@ export interface components {
          * @enum {string}
          */
         GameType: "RAPID" | "BLITZ" | "CLASSICAL";
+        /**
+         * GoogleAuthIn
+         * @description Google Identity Services ID token (credential).
+         */
+        GoogleAuthIn: {
+            /** Credential */
+            credential: string;
+        };
+        /** GoogleClientRead */
+        GoogleClientRead: {
+            /** Client Id */
+            client_id?: string | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -673,6 +857,11 @@ export interface components {
             active: boolean;
             /** Rating */
             rating: number;
+            /**
+             * Tier
+             * @default WOOD
+             */
+            tier: string;
             /** Games Played */
             games_played: number;
             /** Wins */
@@ -796,6 +985,25 @@ export interface components {
             stats: {
                 [key: string]: components["schemas"]["CategoryStats"];
             };
+            /**
+             * Season Label
+             * @default
+             */
+            season_label: string;
+            /**
+             * Season Ratings
+             * @default {}
+             */
+            season_ratings: {
+                [key: string]: number;
+            };
+            /**
+             * Season Deltas
+             * @default {}
+             */
+            season_deltas: {
+                [key: string]: number;
+            };
         };
         /** PlayerLogin */
         PlayerLogin: {
@@ -832,6 +1040,8 @@ export interface components {
             name: string;
             /** Display Name */
             display_name: string;
+            /** Email */
+            email?: string | null;
             /** Active */
             active: boolean;
             /**
@@ -839,6 +1049,11 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /** PlayerSelfUpdate */
+        PlayerSelfUpdate: {
+            /** Display Name */
+            display_name: string;
         };
         /** PlayerSignup */
         PlayerSignup: {
@@ -867,6 +1082,29 @@ export interface components {
             active?: boolean | null;
             /** Password */
             password?: string | null;
+        };
+        /** PushKeys */
+        PushKeys: {
+            /** P256Dh */
+            p256dh: string;
+            /** Auth */
+            auth: string;
+        };
+        /** PushStatusRead */
+        PushStatusRead: {
+            /** Enabled */
+            enabled: boolean;
+        };
+        /** PushSubscribe */
+        PushSubscribe: {
+            /** Endpoint */
+            endpoint: string;
+            keys: components["schemas"]["PushKeys"];
+        };
+        /** PushUnsubscribe */
+        PushUnsubscribe: {
+            /** Endpoint */
+            endpoint: string;
         };
         /** RatingHistoryRead */
         RatingHistoryRead: {
@@ -902,6 +1140,11 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /** VapidPublicKeyRead */
+        VapidPublicKeyRead: {
+            /** Public Key */
+            public_key?: string | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -930,7 +1173,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PlayerRead"];
+                    "application/json": components["schemas"]["PlayerStatus"];
                 };
             };
             /** @description Validation Error */
@@ -954,6 +1197,59 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["PlayerLogin"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayerStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_google_client_id_api_players_google_client_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoogleClientRead"];
+                };
+            };
+        };
+    };
+    player_google_login_api_players_google_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoogleAuthIn"];
             };
         };
         responses: {
@@ -1013,6 +1309,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlayerStatus"];
+                };
+            };
+        };
+    };
+    player_update_profile_api_players_me_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlayerSelfUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayerStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -1149,6 +1478,7 @@ export interface operations {
         parameters: {
             query?: {
                 game_type?: components["schemas"]["GameType"];
+                season?: string;
             };
             header?: never;
             path?: never;
@@ -1273,6 +1603,70 @@ export interface operations {
                 "application/json": components["schemas"]["MatchResultRecord"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_adhoc_result_api_matches_adhoc_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdhocResultCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_match_result_api_matches__match_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                match_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -1805,6 +2199,108 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ChallengeRead"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_vapid_public_key_api_push_vapid_public_key_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VapidPublicKeyRead"];
+                };
+            };
+        };
+    };
+    push_status_api_push_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushStatusRead"];
+                };
+            };
+        };
+    };
+    subscribe_api_push_subscribe_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushSubscribe"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unsubscribe_api_push_unsubscribe_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushUnsubscribe"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

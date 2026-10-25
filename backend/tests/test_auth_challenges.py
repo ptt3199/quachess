@@ -1,8 +1,9 @@
 from datetime import UTC, datetime, timedelta
+
 import pytest
 from httpx import ASGITransport, AsyncClient
+
 from app.main import app
-from app.models import Challenge, ChallengeStatus, Match, MatchStatus, Player
 
 
 @pytest.mark.asyncio
@@ -21,8 +22,11 @@ async def test_player_signup_and_login():
         )
         assert signup_res.status_code == 200
         data = signup_res.json()
-        assert data["username"] == "nguyena"
-        assert data["name"] == "Nguyen A"
+        assert data["authenticated"] is True
+        assert data["player"]["username"] == "nguyena"
+        assert data["player"]["name"] == "Nguyen A"
+        # Signup now doubles as login
+        assert "chess_player_session" in signup_res.cookies
 
         # 2. Signup duplicate username
         dup_res = await ac.post(
@@ -86,7 +90,7 @@ async def test_player_challenge_flow():
                 "display_name": "Player 1",
             },
         )
-        p1_id = p1_res.json()["id"]
+        p1_id = p1_res.json()["player"]["id"]
 
         p2_res = await ac.post(
             "/api/players/signup",
@@ -97,7 +101,7 @@ async def test_player_challenge_flow():
                 "display_name": "Player 2",
             },
         )
-        p2_id = p2_res.json()["id"]
+        p2_id = p2_res.json()["player"]["id"]
 
         # 2. Login as player1
         login1_res = await ac.post(
@@ -161,17 +165,15 @@ async def test_player_match_result_and_cancel():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         # 1. Register players
-        p1 = (
-            await ac.post(
-                "/api/players/signup",
-                json={
-                    "username": "alice",
-                    "password": "password123",
-                    "name": "Alice",
-                    "display_name": "Alice",
-                },
-            )
-        ).json()
+        await ac.post(
+            "/api/players/signup",
+            json={
+                "username": "alice",
+                "password": "password123",
+                "name": "Alice",
+                "display_name": "Alice",
+            },
+        )
 
         p2 = (
             await ac.post(
@@ -183,19 +185,17 @@ async def test_player_match_result_and_cancel():
                     "display_name": "Bob",
                 },
             )
-        ).json()
+        ).json()["player"]
 
-        p3 = (
-            await ac.post(
-                "/api/players/signup",
-                json={
-                    "username": "charlie",
-                    "password": "password123",
-                    "name": "Charlie",
-                    "display_name": "Charlie",
-                },
-            )
-        ).json()
+        await ac.post(
+            "/api/players/signup",
+            json={
+                "username": "charlie",
+                "password": "password123",
+                "name": "Charlie",
+                "display_name": "Charlie",
+            },
+        )
 
         alice_cookies = (
             await ac.post(

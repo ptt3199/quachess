@@ -1,178 +1,205 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { Undo2 } from 'lucide-react';
 import type { Match, MatchResult } from '../types';
-import { formatScheduleDateTime, formatRatingChange, formatVietnamDate } from '../utils/formatters';
+import { Avatar } from './ui/Avatar';
+import { Chip } from './ui/Chip';
+import { RatingDelta } from './ui/RatingDelta';
+import { formatScheduleDateTime, formatVietnamDate } from '../utils/formatters';
 
 interface MatchCardProps {
   match: Match;
   onSelectPlayer?: (playerId: number) => void;
-  showAdminActions?: boolean;
-  showPlayerActions?: boolean;
+  /** Show record-result / cancel actions (participants on scheduled matches). */
+  showActions?: boolean;
   onRecordResult?: (match: Match, result: MatchResult) => void;
   onCancelMatch?: (match: Match) => void;
+  /** Show undo action on completed matches (participants, within 24h). */
+  onRevoke?: (match: Match) => void;
+  compact?: boolean;
 }
 
-export const MatchCard: React.FC<MatchCardProps> = ({
+function scoreDisplay(match: Match): string {
+  if (match.status === 'SCHEDULED') return 'VS';
+  if (match.status === 'CANCELLED') return '—';
+  if (match.result === 'WHITE_WIN') return '1–0';
+  if (match.result === 'BLACK_WIN') return '0–1';
+  if (match.result === 'DRAW') return '½–½';
+  return '—';
+}
+
+export function MatchCard({
   match,
   onSelectPlayer,
-  showAdminActions = false,
-  showPlayerActions = false,
+  showActions = false,
   onRecordResult,
   onCancelMatch,
-}) => {
-  const { dayLabel, timeLabel } = formatScheduleDateTime(match.scheduled_at);
+  onRevoke,
+  compact = false,
+}: MatchCardProps) {
   const [showSelector, setShowSelector] = useState(false);
-
-  const getScoreDisplay = () => {
-    if (match.status === 'SCHEDULED') return 'VS';
-    if (match.status === 'CANCELLED') return 'CANCELLED';
-    if (match.result === 'WHITE_WIN') return '1 - 0';
-    if (match.result === 'BLACK_WIN') return '0 - 1';
-    if (match.result === 'DRAW') return '½ - ½';
-    return '-';
-  };
-
   const isCompleted = match.status === 'COMPLETED';
+  const isScheduled = match.status === 'SCHEDULED';
+  const isCancelled = match.status === 'CANCELLED';
+
+  const { dayLabel, timeLabel } = formatScheduleDateTime(match.scheduled_at);
+  const dateLabel = isScheduled
+    ? `${dayLabel} · ${timeLabel}`
+    : formatVietnamDate(match.played_at || match.scheduled_at);
+
+  const whiteWon = isCompleted && match.result === 'WHITE_WIN';
+  const blackWon = isCompleted && match.result === 'BLACK_WIN';
+  const isDraw = isCompleted && match.result === 'DRAW';
+
+  const nameTone = (won: boolean, lost: boolean) =>
+    won ? 'text-white' : lost ? 'text-slate-400' : 'text-slate-100';
+
+  const padding = compact ? 'p-3' : 'p-4';
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-3">
-      {/* Header Info */}
-      <div className="flex items-center justify-between text-xs text-slate-500">
-        <div className="flex items-center space-x-2">
-          <span className="px-2 py-0.5 rounded-md bg-slate-100 font-medium text-slate-600">
-            {match.game_type}
-          </span>
-          <span>•</span>
-          <span className="font-semibold text-slate-700">
-            {match.status === 'SCHEDULED' ? `${dayLabel} at ${timeLabel}` : formatVietnamDate(match.played_at || match.scheduled_at)}
-          </span>
-        </div>
-        {isCompleted && match.white_rating_change !== null && (
-          <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
-            {formatRatingChange(match.white_rating_change)} / {formatRatingChange(match.black_rating_change)}
-          </span>
-        )}
+    <div className={`bg-night-800 border border-line rounded-2xl ${padding} space-y-3`}>
+      {/* Meta row */}
+      <div className="flex items-center justify-between gap-2">
+        <Chip variant={isScheduled ? 'brand' : isCancelled ? 'danger' : 'neutral'}>
+          {match.game_type}
+        </Chip>
+        <span className="text-[11px] font-semibold text-slate-500">{dateLabel}</span>
       </div>
 
-      {/* Players vs Score */}
-      <div className="grid grid-cols-7 items-center gap-2 pt-1">
-        {/* White Player */}
+      {/* Players + score */}
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+        {/* White player */}
         <button
-          onClick={() => onSelectPlayer && onSelectPlayer(match.white_player_id)}
-          className="col-span-3 text-left focus:outline-none min-h-0 group"
+          type="button"
+          onClick={() => onSelectPlayer?.(match.white_player_id)}
+          className="flex flex-col items-center gap-1.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass-400/60 min-w-0"
         >
-          <div className="flex items-center space-x-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-slate-200 border border-slate-400 shrink-0" title="White" />
-            <span className="font-semibold text-slate-900 group-hover:text-indigo-600 truncate text-sm">
-              {match.white_player_name}
-            </span>
-          </div>
-          {isCompleted && match.white_rating_before !== null && (
-            <span className="text-[11px] text-slate-400 font-mono ml-4 block">
-              {match.white_rating_before} → {match.white_rating_after}
-            </span>
-          )}
+          <Avatar name={match.white_player_name} size="md" />
+          <span className={`text-xs font-bold truncate max-w-full ${nameTone(whiteWon, blackWon)}`}>
+            {match.white_player_name}
+          </span>
+          <span className="flex items-center gap-1 h-4">
+            <span className="w-2 h-2 rounded-full bg-slate-200 border border-slate-500 shrink-0" title="White pieces" />
+            {isCompleted && match.white_rating_change !== null && (
+              <RatingDelta value={match.white_rating_change} size="xs" />
+            )}
+          </span>
         </button>
 
-        {/* Score Badge */}
-        <div className="col-span-1 text-center">
+        {/* Score */}
+        <div className="text-center px-1">
           <span
-            className={`inline-block px-2 py-1 rounded-md text-xs font-bold font-mono ${
+            className={`inline-block min-w-12 px-2 py-1.5 rounded-lg text-xs font-black tabular ${
               isCompleted
-                ? 'bg-slate-900 text-white shadow-xs'
-                : match.status === 'CANCELLED'
-                ? 'bg-red-100 text-red-600'
-                : 'bg-indigo-50 text-indigo-600 border border-indigo-200'
+                ? 'bg-night-950/60 text-brass-300 border border-brass-500/30'
+                : isScheduled
+                  ? 'bg-night-700 text-slate-300 border border-line-strong'
+                  : 'bg-rose-500/10 text-rose-300 border border-rose-500/30'
             }`}
           >
-            {getScoreDisplay()}
+            {scoreDisplay(match)}
           </span>
         </div>
 
-        {/* Black Player */}
+        {/* Black player */}
         <button
-          onClick={() => onSelectPlayer && onSelectPlayer(match.black_player_id)}
-          className="col-span-3 text-right focus:outline-none min-h-0 group"
+          type="button"
+          onClick={() => onSelectPlayer?.(match.black_player_id)}
+          className="flex flex-col items-center gap-1.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass-400/60 min-w-0"
         >
-          <div className="flex items-center justify-end space-x-1.5">
-            <span className="font-semibold text-slate-900 group-hover:text-indigo-600 truncate text-sm">
-              {match.black_player_name}
-            </span>
-            <span className="w-2.5 h-2.5 rounded-full bg-slate-800 shrink-0" title="Black" />
-          </div>
-          {isCompleted && match.black_rating_before !== null && (
-            <span className="text-[11px] text-slate-400 font-mono mr-4 block">
-              {match.black_rating_before} → {match.black_rating_after}
-            </span>
-          )}
+          <Avatar name={match.black_player_name} size="md" />
+          <span className={`text-xs font-bold truncate max-w-full ${nameTone(blackWon, whiteWon)}`}>
+            {match.black_player_name}
+          </span>
+          <span className="flex items-center gap-1 h-4">
+            {isCompleted && match.black_rating_change !== null && (
+              <RatingDelta value={match.black_rating_change} size="xs" />
+            )}
+            <span className="w-2 h-2 rounded-full bg-night-950 border border-slate-400 shrink-0" title="Black pieces" />
+          </span>
         </button>
       </div>
 
-      {/* Action Buttons */}
-      {(showAdminActions || showPlayerActions) && match.status === 'SCHEDULED' && (
-        <div className="pt-2.5 border-t border-slate-100">
-          {showSelector ? (
-            <div className="space-y-2">
-              <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
-                Select Result:
-              </span>
-              <div className="flex gap-1.5">
-                <button
-                  onClick={() => {
-                    onRecordResult && onRecordResult(match, 'WHITE_WIN');
-                    setShowSelector(false);
-                  }}
-                  className="flex-1 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-lg text-[11px] font-bold transition"
-                >
-                  ⚪ White Win
-                </button>
-                <button
-                  onClick={() => {
-                    onRecordResult && onRecordResult(match, 'DRAW');
-                    setShowSelector(false);
-                  }}
-                  className="flex-1 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-lg text-[11px] font-bold transition"
-                >
-                  ½-½ Draw
-                </button>
-                <button
-                  onClick={() => {
-                    onRecordResult && onRecordResult(match, 'BLACK_WIN');
-                    setShowSelector(false);
-                  }}
-                  className="flex-1 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-lg text-[11px] font-bold transition"
-                >
-                  ⚫ Black Win
-                </button>
-                <button
-                  onClick={() => setShowSelector(false)}
-                  className="px-2.5 py-1.5 text-slate-400 hover:text-slate-600 rounded-lg text-[11px] transition"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-end space-x-2">
-              {onRecordResult && (
-                <button
-                  onClick={() => setShowSelector(true)}
-                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs min-h-0 transition"
-                >
-                  Record Result
-                </button>
-              )}
-              {onCancelMatch && (
-                <button
-                  onClick={() => onCancelMatch(match)}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 rounded-lg text-xs font-medium min-h-0 transition"
-                >
-                  Cancel Match
-                </button>
-              )}
-            </div>
+      {/* Draw label for completed games */}
+      {isDraw && <p className="text-center text-[10px] font-semibold text-slate-500 -mt-1">Draw</p>}
+
+      {/* Record result selector */}
+      {showActions && isScheduled && showSelector && (
+        <div className="pt-1 space-y-2">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">
+            Select result
+          </p>
+          <div className="flex gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                onRecordResult?.(match, 'WHITE_WIN');
+                setShowSelector(false);
+              }}
+              className="flex-1 h-9 rounded-lg bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25 text-[11px] font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+            >
+              1–0
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onRecordResult?.(match, 'DRAW');
+                setShowSelector(false);
+              }}
+              className="flex-1 h-9 rounded-lg bg-night-700 border border-line-strong text-slate-300 hover:bg-night-600 text-[11px] font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+            >
+              ½–½
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onRecordResult?.(match, 'BLACK_WIN');
+                setShowSelector(false);
+              }}
+              className="flex-1 h-9 rounded-lg bg-rose-500/15 border border-rose-500/40 text-rose-300 hover:bg-rose-500/25 text-[11px] font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+            >
+              0–1
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Actions row */}
+      {showActions && isScheduled && !showSelector && (onRecordResult || onCancelMatch) && (
+        <div className="flex items-center justify-end gap-2 pt-1">
+          {onCancelMatch && (
+            <button
+              type="button"
+              onClick={() => onCancelMatch(match)}
+              className="h-8 px-3 rounded-lg text-[11px] font-semibold text-slate-400 hover:text-rose-300 hover:bg-rose-500/10 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/60"
+            >
+              Cancel match
+            </button>
           )}
+          {onRecordResult && (
+            <button
+              type="button"
+              onClick={() => setShowSelector(true)}
+              className="h-8 px-3.5 rounded-lg bg-brass-500 text-night-900 text-[11px] font-bold hover:bg-brass-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass-300"
+            >
+              Record result
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Undo for recently completed matches */}
+      {onRevoke && isCompleted && (
+        <div className="flex justify-end pt-1">
+          <button
+            type="button"
+            onClick={() => onRevoke(match)}
+            className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg text-[10px] font-semibold text-slate-500 hover:text-rose-300 hover:bg-rose-500/10 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/60"
+          >
+            <Undo2 className="w-3 h-3" aria-hidden="true" />
+            Undo result
+          </button>
         </div>
       )}
     </div>
   );
-};
+}

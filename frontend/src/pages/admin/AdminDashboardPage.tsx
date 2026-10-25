@@ -1,670 +1,378 @@
-import { useState, useEffect } from 'react';
-import type {
-  DashboardStats,
-  Player,
-  Match,
-  GameType,
-  MatchResult,
-} from '../../types';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { LogOut, Shield } from 'lucide-react';
+import type { GameType, MatchResult } from '../../types';
 import { api } from '../../api/client';
-import {
-  Users,
-  Calendar,
-  LogOut,
-  Plus,
-  CheckCircle,
-  AlertCircle,
-  Clock,
-  Trash2,
-  Trophy,
-} from 'lucide-react';
+import { queryKeys } from '../../lib/queries';
+import { useToast } from '../../components/ui/Toast';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
+import { Button } from '../../components/ui/Button';
+import { Card, SectionTitle } from '../../components/ui/Card';
+import { Chip } from '../../components/ui/Chip';
+import { Avatar } from '../../components/ui/Avatar';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { FormField, fieldControlClass } from '../../components/ui/FormField';
+import { SegmentedControl } from '../../components/ui/SegmentedControl';
+import { StatusMessage } from '../../components/ui/StatusMessage';
+import { MatchCard } from '../../components/MatchCard';
+
+type AdminTab = 'players' | 'schedule' | 'results';
+
+const gameTypeOptions = [
+  { value: 'RAPID' as GameType, label: 'Rapid' },
+  { value: 'BLITZ' as GameType, label: 'Blitz' },
+  { value: 'CLASSICAL' as GameType, label: 'Classical' },
+];
 
 interface AdminDashboardPageProps {
   onLogout: () => void;
 }
 
-export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'players' | 'schedule' | 'results'>('overview');
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+export function AdminDashboardPage({ onLogout }: AdminDashboardPageProps) {
+  const toast = useToast();
+  const confirm = useConfirm();
+  const queryClient = useQueryClient();
+  const [tab, setTab] = useState<AdminTab>('results');
 
-  // Form states
-  const [newPlayerName, setNewPlayerName] = useState('');
-  const [newPlayerDisplayName, setNewPlayerDisplayName] = useState('');
+  const statsQuery = useQuery({
+    queryKey: queryKeys.adminDashboard,
+    queryFn: api.getDashboardStats,
+  });
 
-  // Schedule Match state
-  const [whitePlayerId, setWhitePlayerId] = useState<number | ''>('');
-  const [blackPlayerId, setBlackPlayerId] = useState<number | ''>('');
-  const [gameType, setGameType] = useState<GameType>('BLITZ');
-  const [scheduledAt, setScheduledAt] = useState('');
+  const playersQuery = useQuery({
+    queryKey: queryKeys.players,
+    queryFn: () => api.getPlayers(false),
+  });
 
-  // Direct Result Entry state
-  const [directWhiteId, setDirectWhiteId] = useState<number | ''>('');
-  const [directBlackId, setDirectBlackId] = useState<number | ''>('');
-  const [directGameType, setDirectGameType] = useState<GameType>('BLITZ');
+  const upcomingQuery = useQuery({
+    queryKey: queryKeys.matchesUpcoming,
+    queryFn: api.getUpcomingMatches,
+  });
+
+  const invalidateAll = () => {
+    void queryClient.invalidateQueries({ queryKey: ['matches'] });
+    void queryClient.invalidateQueries({ queryKey: ['player'] });
+    void queryClient.invalidateQueries({ queryKey: ['rankings'] });
+    void queryClient.invalidateQueries({ queryKey: ['players'] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard });
+  };
+
+  // --- Players ---
+  const [newName, setNewName] = useState('');
+  const [newDisplayName, setNewDisplayName] = useState('');
+
+  const createPlayerMutation = useMutation({
+    mutationFn: () => api.createPlayer(newName.trim(), (newDisplayName || newName).trim()),
+    onSuccess: (player) => {
+      toast(`Player ${player.display_name} created (password: password123)`, 'success');
+      setNewName('');
+      setNewDisplayName('');
+      void queryClient.invalidateQueries({ queryKey: queryKeys.players });
+    },
+    onError: (err: Error) => toast(err.message, 'error'),
+  });
+
+  const toggleActiveMutation = useMutation({
+    mutationFn: ({ id, active }: { id: number; active: boolean }) =>
+      api.updatePlayer(id, { active }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: queryKeys.players }),
+    onError: (err: Error) => toast(err.message, 'error'),
+  });
+
+  const deletePlayerMutation = useMutation({
+    mutationFn: (id: number) => api.deletePlayer(id),
+    onSuccess: () => {
+      toast('Player deleted', 'info');
+      invalidateAll();
+    },
+    onError: (err: Error) => toast(err.message, 'error'),
+  });
+
+  const handleDeletePlayer = async (id: number, name: string) => {
+    const ok = await confirm({
+      title: `Delete ${name}?`,
+      message: 'All of their matches and rating history will be permanently removed.',
+      confirmLabel: 'Delete player',
+      danger: true,
+    });
+    if (ok) deletePlayerMutation.mutate(id);
+  };
+
+  // --- Schedule / record matches ---
+  const [whiteId, setWhiteId] = useState('');
+  const [blackId, setBlackId] = useState('');
+  const [matchType, setMatchType] = useState<GameType>('RAPID');
   const [directResult, setDirectResult] = useState<MatchResult>('WHITE_WIN');
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [statsData, playersData, matchesData] = await Promise.all([
-        api.getDashboardStats(),
-        api.getPlayers(false),
-        api.getUpcomingMatches(),
-      ]);
-      setStats(statsData);
-      setPlayers(playersData);
-      setMatches(matchesData);
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to load dashboard' });
-    } finally {
-      setLoading(false);
-    }
+  const players = playersQuery.data ?? [];
+
+  const resetMatchForm = () => {
+    setWhiteId('');
+    setBlackId('');
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const scheduleMatchMutation = useMutation({
+    mutationFn: () =>
+      api.createMatch({
+        white_player_id: Number(whiteId),
+        black_player_id: Number(blackId),
+        game_type: matchType,
+      }),
+    onSuccess: () => {
+      toast('Match scheduled', 'success');
+      resetMatchForm();
+      invalidateAll();
+    },
+    onError: (err: Error) => toast(err.message, 'error'),
+  });
 
-  const handleAddPlayer = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPlayerName || !newPlayerDisplayName) return;
-
-    try {
-      setMessage(null);
-      await api.createPlayer(newPlayerName, newPlayerDisplayName);
-      setNewPlayerName('');
-      setNewPlayerDisplayName('');
-      setMessage({ type: 'success', text: 'Player created successfully!' });
-      loadData();
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.message });
-    }
-  };
-
-  const handleTogglePlayerActive = async (player: Player) => {
-    try {
-      setMessage(null);
-      await api.updatePlayer(player.id, { active: !player.active });
-      setMessage({ type: 'success', text: `Player ${player.display_name} updated!` });
-      loadData();
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.message });
-    }
-  };
-
-  const handleDeletePlayer = async (player: Player) => {
-    if (!window.confirm(`Are you sure you want to delete player "${player.display_name}"? All associated match history will be removed.`)) {
-      return;
-    }
-
-    try {
-      setMessage(null);
-      await api.deletePlayer(player.id);
-      setMessage({ type: 'success', text: `Player "${player.display_name}" deleted successfully!` });
-      loadData();
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.message });
-    }
-  };
-
-  const handleScheduleMatch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!whitePlayerId || !blackPlayerId || !scheduledAt) {
-      setMessage({ type: 'error', text: 'Please fill in all fields' });
-      return;
-    }
-
-    if (whitePlayerId === blackPlayerId) {
-      setMessage({ type: 'error', text: 'White and Black players must be different' });
-      return;
-    }
-
-    try {
-      setMessage(null);
-      const utcTime = new Date(scheduledAt).toISOString();
-      await api.createMatch({
-        white_player_id: Number(whitePlayerId),
-        black_player_id: Number(blackPlayerId),
-        game_type: gameType,
-        scheduled_at: utcTime,
-      });
-
-      setMessage({ type: 'success', text: 'Match scheduled successfully!' });
-      setWhitePlayerId('');
-      setBlackPlayerId('');
-      setScheduledAt('');
-      loadData();
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.message });
-    }
-  };
-
-  const handleDirectRecordResult = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!directWhiteId || !directBlackId) {
-      setMessage({ type: 'error', text: 'Please select both White and Black players' });
-      return;
-    }
-    if (directWhiteId === directBlackId) {
-      setMessage({ type: 'error', text: 'White and Black players must be different' });
-      return;
-    }
-
-    try {
-      setMessage(null);
-      const match = await api.createMatch({
-        white_player_id: Number(directWhiteId),
-        black_player_id: Number(directBlackId),
-        game_type: directGameType,
+  const createCompletedMutation = useMutation({
+    mutationFn: () =>
+      api.createMatch({
+        white_player_id: Number(whiteId),
+        black_player_id: Number(blackId),
+        game_type: matchType,
         status: 'COMPLETED',
         result: directResult,
-      });
+      }),
+    onSuccess: () => {
+      toast('Result recorded', 'success');
+      resetMatchForm();
+      invalidateAll();
+    },
+    onError: (err: Error) => toast(err.message, 'error'),
+  });
 
-      setMessage({
-        type: 'success',
-        text: `Match result created directly! ${match.white_player_name}: ${match.white_rating_change! > 0 ? '+' : ''}${match.white_rating_change} | ${match.black_player_name}: ${match.black_rating_change! > 0 ? '+' : ''}${match.black_rating_change}`,
-      });
-      setDirectWhiteId('');
-      setDirectBlackId('');
-      loadData();
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.message });
-    }
-  };
+  const recordResultMutation = useMutation({
+    mutationFn: ({ matchId, result }: { matchId: number; result: MatchResult }) =>
+      api.recordMatchResult(matchId, result),
+    onSuccess: () => {
+      toast('Result saved', 'success');
+      invalidateAll();
+    },
+    onError: (err: Error) => toast(err.message, 'error'),
+  });
 
-  const handleRecordResult = async (matchId: number, result: MatchResult) => {
-    try {
-      setMessage(null);
-      const updatedMatch = await api.recordMatchResult(matchId, result);
-      setMessage({
-        type: 'success',
-        text: `Result recorded! ${updatedMatch.white_player_name}: ${updatedMatch.white_rating_change! > 0 ? '+' : ''}${updatedMatch.white_rating_change} | ${updatedMatch.black_player_name}: ${updatedMatch.black_rating_change! > 0 ? '+' : ''}${updatedMatch.black_rating_change}`,
-      });
-      loadData();
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.message });
-    }
-  };
+  const cancelMatchMutation = useMutation({
+    mutationFn: (matchId: number) => api.cancelMatch(matchId),
+    onSuccess: () => {
+      toast('Match cancelled', 'info');
+      invalidateAll();
+    },
+    onError: (err: Error) => toast(err.message, 'error'),
+  });
 
-  const handleCancelMatch = async (matchId: number) => {
-    if (!window.confirm('Are you sure you want to cancel this match?')) return;
-    try {
-      setMessage(null);
-      await api.cancelMatch(matchId);
-      setMessage({ type: 'success', text: 'Match cancelled' });
-      loadData();
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.message });
-    }
-  };
+  const playerSelect = (id: string, label: string, value: string, onChange: (v: string) => void) => (
+    <FormField id={id} label={label} required>
+      <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className={fieldControlClass}>
+        <option value="">Select player…</option>
+        {players.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.display_name}
+          </option>
+        ))}
+      </select>
+    </FormField>
+  );
 
-  const handleLogout = async () => {
-    await api.adminLogout();
-    onLogout();
-  };
+  const matchFormValid = whiteId && blackId && whiteId !== blackId;
 
-  const activePlayers = players.filter((p) => p.active);
+  const matchForm = (
+    <div className="space-y-3">
+      <SegmentedControl ariaLabel="Game type" options={gameTypeOptions} value={matchType} onChange={setMatchType} className="w-full" />
+      <div className="grid grid-cols-2 gap-3">
+        {playerSelect('admin-white', 'White pieces', whiteId, setWhiteId)}
+        {playerSelect('admin-black', 'Black pieces', blackId, setBlackId)}
+      </div>
+      {!matchFormValid && (whiteId || blackId) && (
+        <StatusMessage type="info" message="Pick two different players." />
+      )}
+    </div>
+  );
+
+  const stats = statsQuery.data;
 
   return (
-    <div className="space-y-4 pt-2">
-      {/* Top Admin Header */}
-      <div className="bg-slate-900 text-white rounded-2xl p-4 shadow-md flex items-center justify-between">
-        <div>
-          <h1 className="font-bold text-base leading-tight">Admin Dashboard</h1>
-          <p className="text-xs text-slate-400">Quaveo Chess Club Management</p>
-        </div>
+    <div className="space-y-4 pt-1 animate-fade-in">
+      <div className="flex items-center justify-between px-1">
+        <h1 className="text-base font-bold text-white flex items-center gap-2">
+          <Shield className="w-4 h-4 text-brass-400" aria-hidden="true" />
+          Admin
+        </h1>
         <button
-          onClick={handleLogout}
-          className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs text-slate-300 transition focus:outline-none min-h-0"
+          type="button"
+          onClick={onLogout}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-rose-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/60 rounded-md px-2 py-1.5"
         >
-          <LogOut className="w-3.5 h-3.5" />
-          <span>Sign Out</span>
+          <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
+          Sign out
         </button>
       </div>
 
-      {/* Notification Toast */}
-      {message && (
-        <div
-          className={`p-3 rounded-xl text-xs font-semibold flex items-center space-x-2 ${
-            message.type === 'success'
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-              : 'bg-red-50 text-red-700 border border-red-200'
-          }`}
-        >
-          {message.type === 'success' ? (
-            <CheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
-          ) : (
-            <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
-          )}
-          <span>{message.text}</span>
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-2">
+        {[
+          { label: 'Players', value: stats?.players_count ?? '–' },
+          { label: 'Rapid', value: stats?.rapid_games ?? '–' },
+          { label: 'Blitz', value: stats?.blitz_games ?? '–' },
+          { label: 'Classical', value: stats?.classical_games ?? '–' },
+        ].map((stat) => (
+          <Card key={stat.label} className="p-2.5 text-center">
+            <p className="text-lg font-black tabular text-white leading-none">{stat.value}</p>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mt-1">{stat.label}</p>
+          </Card>
+        ))}
+      </div>
+
+      <SegmentedControl
+        ariaLabel="Admin sections"
+        options={[
+          { value: 'results', label: 'Results' },
+          { value: 'schedule', label: 'Schedule' },
+          { value: 'players', label: 'Players' },
+        ]}
+        value={tab}
+        onChange={setTab}
+        className="w-full"
+      />
+
+      {/* Results tab */}
+      {tab === 'results' && (
+        <div className="space-y-4">
+          <section className="space-y-2.5">
+            <SectionTitle>Pending matches</SectionTitle>
+            {(upcomingQuery.data ?? []).length === 0 ? (
+              <Card>
+                <EmptyState title="No scheduled matches" />
+              </Card>
+            ) : (
+              (upcomingQuery.data ?? []).map((match) => (
+                <MatchCard
+                  key={match.id}
+                  match={match}
+                  showActions
+                  onRecordResult={(m, result) => recordResultMutation.mutate({ matchId: m.id, result })}
+                  onCancelMatch={(m) => cancelMatchMutation.mutate(m.id)}
+                />
+              ))
+            )}
+          </section>
+
+          <section className="space-y-2.5">
+            <SectionTitle>Record a past game</SectionTitle>
+            <Card className="p-4 space-y-3">
+              {matchForm}
+              <SegmentedControl
+                ariaLabel="Result"
+                options={[
+                  { value: 'WHITE_WIN' as MatchResult, label: '1–0' },
+                  { value: 'DRAW' as MatchResult, label: '½–½' },
+                  { value: 'BLACK_WIN' as MatchResult, label: '0–1' },
+                ]}
+                value={directResult}
+                onChange={setDirectResult}
+                className="w-full"
+                size="sm"
+              />
+              <Button
+                fullWidth
+                disabled={!matchFormValid}
+                loading={createCompletedMutation.isPending}
+                onClick={() => createCompletedMutation.mutate()}
+              >
+                Save result
+              </Button>
+            </Card>
+          </section>
         </div>
       )}
 
-      {/* Navigation Sub-Tabs */}
-      <div className="bg-slate-200 p-1 rounded-xl grid grid-cols-4 gap-1 text-xs">
-        <button
-          onClick={() => setActiveTab('overview')}
-          className={`py-2 px-1 rounded-lg font-bold transition min-h-0 ${
-            activeTab === 'overview'
-              ? 'bg-white text-blue-600 shadow-xs'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          Overview
-        </button>
-        <button
-          onClick={() => setActiveTab('players')}
-          className={`py-2 px-1 rounded-lg font-bold transition min-h-0 ${
-            activeTab === 'players'
-              ? 'bg-white text-blue-600 shadow-xs'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          Players
-        </button>
-        <button
-          onClick={() => setActiveTab('schedule')}
-          className={`py-2 px-1 rounded-lg font-bold transition min-h-0 ${
-            activeTab === 'schedule'
-              ? 'bg-white text-blue-600 shadow-xs'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          Schedule
-        </button>
-        <button
-          onClick={() => setActiveTab('results')}
-          className={`py-2 px-1 rounded-lg font-bold transition min-h-0 ${
-            activeTab === 'results'
-              ? 'bg-white text-blue-600 shadow-xs'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          Results
-        </button>
-      </div>
-
-      {/* Tab Contents */}
-      {loading ? (
-        <div className="p-8 text-center text-slate-400 space-y-2">
-          <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto" />
-          <p className="text-xs">Updating stats...</p>
-        </div>
-      ) : activeTab === 'overview' ? (
-        /* Overview Stats */
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs">
-              <div className="flex items-center space-x-2 text-slate-500 mb-1">
-                <Users className="w-4 h-4 text-blue-600" />
-                <span className="text-xs font-semibold">Total Players</span>
-              </div>
-              <span className="text-2xl font-bold font-mono text-slate-900">
-                {stats?.players_count || 0}
-              </span>
-            </div>
-
-            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs">
-              <div className="flex items-center space-x-2 text-slate-500 mb-1">
-                <Clock className="w-4 h-4 text-amber-500" />
-                <span className="text-xs font-semibold">Upcoming</span>
-              </div>
-              <span className="text-2xl font-bold font-mono text-slate-900">
-                {stats?.upcoming_matches || 0}
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Completed Games Breakdown
-            </h3>
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="p-2 bg-slate-50 rounded-lg">
-                <span className="text-xs text-slate-500 block">Blitz</span>
-                <span className="font-mono font-bold text-base text-slate-900">
-                  {stats?.blitz_games || 0}
-                </span>
-              </div>
-              <div className="p-2 bg-slate-50 rounded-lg">
-                <span className="text-xs text-slate-500 block">Rapid</span>
-                <span className="font-mono font-bold text-base text-slate-900">
-                  {stats?.rapid_games || 0}
-                </span>
-              </div>
-              <div className="p-2 bg-slate-50 rounded-lg">
-                <span className="text-xs text-slate-500 block">Classical</span>
-                <span className="font-mono font-bold text-base text-slate-900">
-                  {stats?.classical_games || 0}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : activeTab === 'players' ? (
-        /* Players Management */
-        <div className="space-y-4">
-          {/* Add Player Form */}
-          <form
-            onSubmit={handleAddPlayer}
-            className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-3"
+      {/* Schedule tab */}
+      {tab === 'schedule' && (
+        <Card className="p-4 space-y-3">
+          <p className="text-xs text-slate-400">
+            Create an upcoming match. Players can record the result when it's played.
+          </p>
+          {matchForm}
+          <Button
+            fullWidth
+            disabled={!matchFormValid}
+            loading={scheduleMatchMutation.isPending}
+            onClick={() => scheduleMatchMutation.mutate()}
           >
-            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center space-x-1">
-              <Plus className="w-3.5 h-3.5 text-blue-600" />
-              <span>Add New Player</span>
-            </h3>
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                type="text"
-                placeholder="Full Name (e.g. Nguyen A)"
-                value={newPlayerName}
-                onChange={(e) => setNewPlayerName(e.target.value)}
-                required
-                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-              <input
-                type="text"
-                placeholder="Display Name"
-                value={newPlayerDisplayName}
-                onChange={(e) => setNewPlayerDisplayName(e.target.value)}
-                required
-                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs min-h-0"
-            >
-              Add Player
-            </button>
-          </form>
+            Schedule match
+          </Button>
+        </Card>
+      )}
 
-          {/* Players List with Active Toggle & Delete */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm divide-y divide-slate-100 overflow-hidden">
-            {players.map((player) => (
-              <div
-                key={player.id}
-                className="p-3 flex items-center justify-between text-xs hover:bg-slate-50"
-              >
-                <div>
-                  <div className="font-bold text-slate-900">{player.display_name}</div>
-                  <div className="text-[11px] text-slate-400">{player.name}</div>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => handleTogglePlayerActive(player)}
-                    className={`px-2.5 py-1 rounded-full text-[11px] font-semibold min-h-0 ${
-                      player.active
-                        ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                        : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                    }`}
-                  >
-                    {player.active ? 'Active' : 'Inactive'}
-                  </button>
-
-                  <button
-                    onClick={() => handleDeletePlayer(player)}
-                    className="px-2.5 py-1 text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg text-[11px] font-bold transition flex items-center space-x-1 min-h-0"
-                    title="Delete Player"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Delete</span>
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : activeTab === 'schedule' ? (
-        /* Schedule Match Form */
-        <form
-          onSubmit={handleScheduleMatch}
-          className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-3"
-        >
-          <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center space-x-1">
-            <Calendar className="w-3.5 h-3.5 text-blue-600" />
-            <span>Schedule Upcoming Match</span>
-          </h3>
-
-          <div className="space-y-2">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                White Player
-              </label>
-              <select
-                value={whitePlayerId}
-                onChange={(e) => setWhitePlayerId(e.target.value ? Number(e.target.value) : '')}
-                required
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
-              >
-                <option value="">Select White Player</option>
-                {activePlayers.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.display_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Black Player
-              </label>
-              <select
-                value={blackPlayerId}
-                onChange={(e) => setBlackPlayerId(e.target.value ? Number(e.target.value) : '')}
-                required
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
-              >
-                <option value="">Select Black Player</option>
-                {activePlayers.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.display_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Game Format
-                </label>
-                <select
-                  value={gameType}
-                  onChange={(e) => setGameType(e.target.value as GameType)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
-                >
-                  <option value="BLITZ">Blitz</option>
-                  <option value="RAPID">Rapid</option>
-                  <option value="CLASSICAL">Classical</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Date & Time
-                </label>
+      {/* Players tab */}
+      {tab === 'players' && (
+        <div className="space-y-4">
+          <Card className="p-4 space-y-3">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Add player</p>
+            <div className="grid grid-cols-2 gap-3">
+              <FormField id="new-player-name" label="Full name" required>
                 <input
-                  type="datetime-local"
-                  value={scheduledAt}
-                  onChange={(e) => setScheduledAt(e.target.value)}
-                  required
-                  className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  id="new-player-name"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  className={fieldControlClass}
+                  placeholder="Nguyen Van A"
                 />
-              </div>
+              </FormField>
+              <FormField id="new-player-display" label="Display name">
+                <input
+                  id="new-player-display"
+                  value={newDisplayName}
+                  onChange={(e) => setNewDisplayName(e.target.value)}
+                  className={fieldControlClass}
+                  placeholder="Minh A"
+                />
+              </FormField>
             </div>
-          </div>
-
-          <button
-            type="submit"
-            className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs min-h-0"
-          >
-            Save Scheduled Match
-          </button>
-        </form>
-      ) : (
-        /* Results Entry Tab - Direct Result Creation + Pending Matches */
-        <div className="space-y-4">
-          {/* Direct Match Result Creation Form */}
-          <form
-            onSubmit={handleDirectRecordResult}
-            className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-3"
-          >
-            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center space-x-1">
-              <Trophy className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Create Match Result Directly (No Scheduling Required)</span>
-            </h3>
-
-            <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    White Player
-                  </label>
-                  <select
-                    value={directWhiteId}
-                    onChange={(e) => setDirectWhiteId(e.target.value ? Number(e.target.value) : '')}
-                    required
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                    <option value="">Select White</option>
-                    {activePlayers.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.display_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Black Player
-                  </label>
-                  <select
-                    value={directBlackId}
-                    onChange={(e) => setDirectBlackId(e.target.value ? Number(e.target.value) : '')}
-                    required
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                    <option value="">Select Black</option>
-                    {activePlayers.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.display_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Format
-                  </label>
-                  <select
-                    value={directGameType}
-                    onChange={(e) => setDirectGameType(e.target.value as GameType)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                    <option value="BLITZ">Blitz</option>
-                    <option value="RAPID">Rapid</option>
-                    <option value="CLASSICAL">Classical</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Result
-                  </label>
-                  <select
-                    value={directResult}
-                    onChange={(e) => setDirectResult(e.target.value as MatchResult)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                    <option value="WHITE_WIN">White Wins (1 - 0)</option>
-                    <option value="DRAW">Draw (½ - ½)</option>
-                    <option value="BLACK_WIN">Black Wins (0 - 1)</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs min-h-0"
+            <Button
+              fullWidth
+              disabled={!newName.trim()}
+              loading={createPlayerMutation.isPending}
+              onClick={() => createPlayerMutation.mutate()}
             >
-              Record Result & Update Elo Ratings
-            </button>
-          </form>
+              Create player
+            </Button>
+          </Card>
 
-          {/* Pending Scheduled Matches */}
-          <div className="space-y-3 pt-2">
-            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-              Pending Scheduled Matches ({matches.length})
-            </h3>
-            {matches.length === 0 ? (
-              <div className="bg-white rounded-xl border border-slate-200 p-6 text-center text-slate-400 text-xs">
-                No pending scheduled matches.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {matches.map((m) => (
-                  <div
-                    key={m.id}
-                    className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-3"
-                  >
-                    <div className="flex items-center justify-between text-xs text-slate-500">
-                      <span className="font-semibold text-slate-700">{m.game_type}</span>
-                      <span>Match #{m.id}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-sm font-bold text-slate-900">
-                      <span>{m.white_player_name} (White)</span>
-                      <span className="text-xs text-slate-400">vs</span>
-                      <span>{m.black_player_name} (Black)</span>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100">
-                      <button
-                        onClick={() => handleRecordResult(m.id, 'WHITE_WIN')}
-                        className="py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-lg text-xs border border-blue-200 transition min-h-0"
-                      >
-                        White Wins (1-0)
-                      </button>
-                      <button
-                        onClick={() => handleRecordResult(m.id, 'DRAW')}
-                        className="py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold rounded-lg text-xs border border-amber-200 transition min-h-0"
-                      >
-                        Draw (½-½)
-                      </button>
-                      <button
-                        onClick={() => handleRecordResult(m.id, 'BLACK_WIN')}
-                        className="py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold rounded-lg text-xs border border-purple-200 transition min-h-0"
-                      >
-                        Black Wins (0-1)
-                      </button>
-                    </div>
-                    <div className="text-right pt-1">
-                      <button
-                        onClick={() => handleCancelMatch(m.id)}
-                        className="text-xs text-slate-400 hover:text-red-600 font-medium underline focus:outline-none min-h-0"
-                      >
-                        Cancel Scheduled Match
-                      </button>
-                    </div>
+          <section className="space-y-2.5">
+            <SectionTitle>{players.length} players</SectionTitle>
+            <Card className="divide-y divide-line overflow-hidden">
+              {players.map((p) => (
+                <div key={p.id} className="p-3 flex items-center gap-3">
+                  <Avatar name={p.display_name} size="sm" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-white truncate">{p.display_name}</p>
+                    <p className="text-[11px] text-slate-500">@{p.username}</p>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  <Chip variant={p.active ? 'success' : 'neutral'}>{p.active ? 'Active' : 'Inactive'}</Chip>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    loading={toggleActiveMutation.isPending && toggleActiveMutation.variables?.id === p.id}
+                    onClick={() => toggleActiveMutation.mutate({ id: p.id, active: !p.active })}
+                  >
+                    {p.active ? 'Disable' : 'Enable'}
+                  </Button>
+                  <Button
+                    variant="danger-ghost"
+                    size="sm"
+                    aria-label={`Delete ${p.display_name}`}
+                    onClick={() => handleDeletePlayer(p.id, p.display_name)}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              ))}
+            </Card>
+          </section>
         </div>
       )}
     </div>
   );
-};
+}

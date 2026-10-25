@@ -1,116 +1,176 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Match } from '../types';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { History } from 'lucide-react';
+import type { GameType, Match } from '../types';
 import { api } from '../api/client';
+import { queryKeys } from '../lib/queries';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/ui/Toast';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import { MatchCard } from '../components/MatchCard';
-import { Calendar, History, Swords } from 'lucide-react';
+import { Card, SectionTitle } from '../components/ui/Card';
+import { EmptyState } from '../components/ui/EmptyState';
+import { LoadingState } from '../components/ui/LoadingState';
+import { SegmentedControl } from '../components/ui/SegmentedControl';
+import { StatusMessage } from '../components/ui/StatusMessage';
+import { isRevocable } from '../utils/formatters';
 
-interface MatchesPageProps {
-  onSelectPlayer?: (playerId: number) => void;
-}
+type MatchView = 'results' | 'upcoming';
+type CategoryFilter = GameType | 'ALL';
 
-export const MatchesPage: React.FC<MatchesPageProps> = ({ onSelectPlayer: propsOnSelectPlayer }) => {
+const categoryFilterOptions = [
+  { value: 'ALL' as CategoryFilter, label: 'All' },
+  { value: 'RAPID' as CategoryFilter, label: 'Rapid' },
+  { value: 'BLITZ' as CategoryFilter, label: 'Blitz' },
+  { value: 'CLASSICAL' as CategoryFilter, label: 'Classical' },
+];
+
+export function MatchesPage() {
   const navigate = useNavigate();
+  const { player, isPlayerAuthed } = useAuth();
+  const toast = useToast();
+  const confirm = useConfirm();
+  const queryClient = useQueryClient();
 
-  const handleSelectPlayer = (id: number) => {
-    if (propsOnSelectPlayer) {
-      propsOnSelectPlayer(id);
-    } else {
-      navigate(`/players/${id}`);
-    }
+  const [view, setView] = useState<MatchView>('results');
+  const [category, setCategory] = useState<CategoryFilter>('ALL');
+
+  const gameTypeFilter = category === 'ALL' ? undefined : category;
+
+  const matchesQuery = useQuery({
+    queryKey: [...queryKeys.matchesRecent, view, category],
+    queryFn: () =>
+      view === 'upcoming'
+        ? api.getMatches({ game_type: gameTypeFilter, status: 'SCHEDULED' })
+        : api.getMatches({ game_type: gameTypeFilter, status: 'COMPLETED' }),
+  });
+
+  const invalidate = () => {
+    void queryClient.invalidateQueries({ queryKey: ['matches'] });
+    void queryClient.invalidateQueries({ queryKey: ['player'] });
+    void queryClient.invalidateQueries({ queryKey: ['rankings'] });
+    void queryClient.invalidateQueries({ queryKey: ['players'] });
   };
 
-  const [upcomingMatches, setUpcomingMatches] = useState<Match[]>([]);
-  const [recentMatches, setRecentMatches] = useState<Match[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const recordResultMutation = useMutation({
+    mutationFn: ({ matchId, result }: { matchId: number; result: Match['result'] }) =>
+      api.playerRecordMatchResult(matchId, result!),
+    onSuccess: () => {
+      toast('Result saved', 'success');
+      invalidate();
+    },
+    onError: (err: Error) => toast(err.message, 'error'),
+  });
 
-  const fetchAllMatches = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const [upcoming, recent] = await Promise.all([
-        api.getUpcomingMatches(),
-        api.getRecentMatches(20),
-      ]);
-      setUpcomingMatches(upcoming);
-      setRecentMatches(recent);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load matches');
-    } finally {
-      setLoading(false);
-    }
+  const cancelMatchMutation = useMutation({
+    mutationFn: (matchId: number) => api.playerCancelMatch(matchId),
+    onSuccess: () => {
+      toast('Match cancelled', 'info');
+      invalidate();
+    },
+    onError: (err: Error) => toast(err.message, 'error'),
+  });
+
+  const revokeMutation = useMutation({
+    mutationFn: (matchId: number) => api.revokeMatchResult(matchId),
+    onSuccess: () => {
+      toast('Result undone, ratings restored', 'success');
+      invalidate();
+    },
+    onError: (err: Error) => toast(err.message, 'error'),
+  });
+
+  const handleRevoke = async (match: Match) => {
+    const ok = await confirm({
+      title: 'Undo this result?',
+      message:
+        'Ratings will be recalculated as if the game was never played. Only results recorded in the last 24 hours can be undone.',
+      confirmLabel: 'Undo result',
+      danger: true,
+    });
+    if (ok) revokeMutation.mutate(match.id);
   };
 
-  useEffect(() => {
-    fetchAllMatches();
-  }, []);
+  const matches = matchesQuery.data ?? [];
+
+  const canRevoke = (match: Match) =>
+    isPlayerAuthed &&
+    player != null &&
+    (match.white_player_id === player.id || match.black_player_id === player.id) &&
+    isRevocable(match.played_at);
 
   return (
-    <div className="space-y-6 pt-2">
-      {/* Header Banner */}
-      <div className="bg-slate-900 text-white rounded-2xl p-4 shadow-md flex items-center justify-between">
-        <div>
-          <h1 className="font-bold text-base leading-tight">Match Center</h1>
-          <p className="text-xs text-slate-400">Upcoming Fixtures & Recent Results</p>
-        </div>
-        <Swords className="w-6 h-6 text-blue-400" />
+    <div className="space-y-4 pt-1 animate-fade-in">
+      <div className="flex items-center justify-between px-1">
+        <h1 className="text-base font-bold text-white flex items-center gap-2">
+          <History className="w-4 h-4 text-brass-400" aria-hidden="true" />
+          Match Center
+        </h1>
       </div>
 
-      {loading ? (
-        <div className="p-8 text-center text-slate-400 space-y-2">
-          <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto" />
-          <p className="text-xs">Loading matches...</p>
-        </div>
-      ) : error ? (
-        <div className="p-6 text-center text-red-500 text-sm">{error}</div>
+      <SegmentedControl
+        ariaLabel="Match view"
+        options={[
+          { value: 'results', label: 'Results' },
+          { value: 'upcoming', label: 'Upcoming' },
+        ]}
+        value={view}
+        onChange={setView}
+        className="w-full"
+      />
+
+      <SegmentedControl
+        ariaLabel="Category filter"
+        options={categoryFilterOptions}
+        value={category}
+        onChange={setCategory}
+        className="w-full"
+        size="sm"
+      />
+
+      {matchesQuery.isLoading ? (
+        <LoadingState label="Loading matches…" />
+      ) : matchesQuery.isError ? (
+        <StatusMessage type="error" message={(matchesQuery.error as Error).message} />
+      ) : matches.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={<History className="w-5 h-5" />}
+            title={view === 'upcoming' ? 'Nothing scheduled' : 'No results yet'}
+            hint={
+              view === 'upcoming'
+                ? 'Schedule a match by challenging someone from their profile.'
+                : 'Play a game and record it with the Record button.'
+            }
+          />
+        </Card>
       ) : (
-        <>
-          {/* Section 1: Upcoming Scheduled Matches */}
-          <section className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <Calendar className="w-4 h-4 text-blue-600" />
-              <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                Upcoming Scheduled Matches ({upcomingMatches.length})
-              </h2>
-            </div>
-
-            {upcomingMatches.length === 0 ? (
-              <div className="bg-white rounded-xl border border-slate-200 p-6 text-center text-slate-400 text-xs">
-                No upcoming matches currently scheduled.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {upcomingMatches.map((match) => (
-                  <MatchCard key={match.id} match={match} onSelectPlayer={handleSelectPlayer} />
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* Section 2: Recent Completed Matches */}
-          <section className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <History className="w-4 h-4 text-emerald-600" />
-              <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                Recent Completed Results ({recentMatches.length})
-              </h2>
-            </div>
-
-            {recentMatches.length === 0 ? (
-              <div className="bg-white rounded-xl border border-slate-200 p-6 text-center text-slate-400 text-xs">
-                No recent completed matches recorded.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {recentMatches.map((match) => (
-                  <MatchCard key={match.id} match={match} onSelectPlayer={handleSelectPlayer} />
-                ))}
-              </div>
-            )}
-          </section>
-        </>
+        <div className="space-y-3">
+          <SectionTitle>{matches.length} matches</SectionTitle>
+          {matches.map((match) => {
+            const isMine =
+              isPlayerAuthed &&
+              player != null &&
+              (match.white_player_id === player.id || match.black_player_id === player.id);
+            return (
+              <MatchCard
+                key={match.id}
+                match={match}
+                onSelectPlayer={(id) => navigate(`/players/${id}`)}
+                showActions={view === 'upcoming' && isMine}
+                onRecordResult={
+                  isMine
+                    ? (m, result) => recordResultMutation.mutate({ matchId: m.id, result })
+                    : undefined
+                }
+                onCancelMatch={isMine ? (m) => cancelMatchMutation.mutate(m.id) : undefined}
+                onRevoke={view === 'results' && canRevoke(match) ? handleRevoke : undefined}
+              />
+            );
+          })}
+        </div>
       )}
     </div>
   );
-};
+}

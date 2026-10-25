@@ -1,106 +1,81 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, ShieldAlert, Bell, LogOut, User } from 'lucide-react';
-import type { AdminStatus, PlayerStatus } from '../types';
+import { useQuery } from '@tanstack/react-query';
+import { Bell, LogIn } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { api } from '../api/client';
+import { queryKeys } from '../lib/queries';
+import { Avatar } from './ui/Avatar';
 
 interface HeaderProps {
-  adminStatus: AdminStatus | null;
-  playerStatus: PlayerStatus | null;
-  onLogoutPlayer: () => void;
-  onLoginPlayerClick: () => void;
+  onLoginClick: () => void;
   onInboxClick: () => void;
-  pendingCount: number;
 }
 
-export const Header: React.FC<HeaderProps> = ({
-  adminStatus,
-  playerStatus,
-  onLogoutPlayer,
-  onLoginPlayerClick,
-  onInboxClick,
-  pendingCount,
-}) => {
+export function Header({ onLoginClick, onInboxClick }: HeaderProps) {
+  const { isPlayerAuthed, player } = useAuth();
+
+  const { data: received } = useQuery({
+    queryKey: queryKeys.challengesReceived,
+    queryFn: api.getChallengesReceived,
+    enabled: isPlayerAuthed,
+    refetchInterval: 30_000,
+  });
+  const pendingCount = received?.length ?? 0;
+
   return (
-    <header className="sticky top-0 z-30 bg-slate-900 text-white shadow-md">
-      <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
-        <Link
-          to="/"
-          className="flex items-center space-x-2 text-left focus:outline-none min-h-0"
-        >
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow-sm">
-            ♔
-          </div>
-          <div>
-            <h1 className="font-bold text-base leading-tight tracking-tight">Quaveo Chess</h1>
-            <p className="text-xs text-slate-400">Rating & Schedule</p>
-          </div>
+    <header className="sticky top-0 z-40 bg-night-900/85 backdrop-blur-md border-b border-line">
+      <div className="max-w-md mx-auto px-4 h-14 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass-400/60">
+          <span
+            aria-hidden="true"
+            className="w-9 h-9 rounded-xl bg-gradient-to-br from-brass-400 to-brass-600 text-night-900 grid place-items-center text-lg font-black shadow-sm"
+          >
+            ♞
+          </span>
+          <span>
+            <span className="block text-sm font-bold text-white leading-tight tracking-tight">Quaveo Chess</span>
+            <span className="block text-[10px] font-semibold uppercase tracking-widest text-slate-500 leading-tight">
+              Office Chess Club
+            </span>
+          </span>
         </Link>
 
-        <div className="flex items-center space-x-2.5">
-          {/* Member Area */}
-          {playerStatus?.authenticated && playerStatus.player ? (
-            <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-2">
+          {isPlayerAuthed ? (
+            <>
               <button
+                type="button"
                 onClick={onInboxClick}
-                className="relative p-1.5 rounded-full bg-slate-800 hover:bg-slate-700 transition-colors text-slate-300 hover:text-white"
+                aria-label={`Inbox, ${pendingCount} pending invitation${pendingCount === 1 ? '' : 's'}`}
+                className="relative w-9 h-9 grid place-items-center rounded-full bg-night-700 border border-line text-slate-300 hover:text-white hover:bg-night-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass-400/60"
               >
                 <Bell className="w-4 h-4" />
                 {pendingCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-slate-900 animate-pulse">
+                  <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 px-0.5 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white ring-2 ring-night-900">
                     {pendingCount}
                   </span>
                 )}
               </button>
-
               <Link
-                to={`/players/${playerStatus.player.id}`}
-                className="flex items-center space-x-1 px-2.5 py-1.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-semibold hover:bg-indigo-500/30 transition"
+                to="/me"
+                aria-label="Your profile"
+                className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass-400/60"
               >
-                <User className="w-3.5 h-3.5" />
-                <span className="max-w-[70px] truncate">{playerStatus.player.display_name}</span>
+                <Avatar name={player?.display_name ?? '?'} size="sm" />
               </Link>
-
-              <button
-                onClick={onLogoutPlayer}
-                className="p-1.5 rounded-full bg-slate-800 hover:bg-red-950/40 text-slate-400 hover:text-red-400 border border-transparent hover:border-red-900/30 transition-all"
-                title="Sign out"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
+            </>
           ) : (
             <button
-              onClick={onLoginPlayerClick}
-              className="flex items-center space-x-1 px-2.5 py-1.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition"
+              type="button"
+              onClick={onLoginClick}
+              className="flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-brass-500 hover:bg-brass-400 text-night-900 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass-300"
             >
-              <User className="w-3.5 h-3.5" />
-              <span>Login</span>
+              <LogIn className="w-3.5 h-3.5" aria-hidden="true" />
+              Sign in
             </button>
           )}
-
-          {/* Admin Dashboard */}
-          <Link
-            to="/admin"
-            className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-full text-xs font-semibold transition min-h-0 ${
-              adminStatus?.authenticated
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-            }`}
-          >
-            {adminStatus?.authenticated ? (
-              <>
-                <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
-                <span>Admin</span>
-              </>
-            ) : (
-              <>
-                <Shield className="w-3.5 h-3.5" />
-                <span>Admin</span>
-              </>
-            )}
-          </Link>
         </div>
       </div>
     </header>
   );
-};
+}
