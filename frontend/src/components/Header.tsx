@@ -33,7 +33,7 @@ export function Header({ onLoginClick, onInboxClick }: HeaderProps) {
             ♞
           </span>
           <span>
-            <span className="block text-sm font-bold text-white leading-tight tracking-tight">Quaveo Chess</span>
+            <span className="block text-sm font-bold text-white leading-tight tracking-tight">Quachess</span>
             <span className="block text-[10px] font-semibold uppercase tracking-widest text-slate-500 leading-tight">
               Office Chess Club
             </span>

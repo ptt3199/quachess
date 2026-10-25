@@ -187,7 +187,7 @@ export function HomePage() {
             <Swords className="w-7 h-7" aria-hidden="true" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-white">Welcome to Quaveo Chess</h2>
+            <h2 className="text-base font-bold text-white">Welcome to Quachess</h2>
             <p className="text-xs text-slate-400 mt-1 leading-relaxed">
               Play over the board, then record the result in seconds. Climb the seasonal
               leaderboard and challenge your colleagues.

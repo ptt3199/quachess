@@ -14,9 +14,9 @@ export default defineConfig({
       filename: 'sw.ts',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'Quaveo Chess Club',
-        short_name: 'Quaveo Chess',
-        description: 'Rating & Schedule Web Application for Quaveo Chess Club',
+        name: 'Quachess',
+        short_name: 'Quachess',
+        description: 'Rating & Schedule Web Application for Quachess',
         theme_color: '#0B1120',
         background_color: '#0B1120',
         display: 'standalone',

@@ -1,146 +1,57 @@
-# ♟️ Quaveo Chess Club Rating Web App
+# ♞ Quachess
 
-A production-ready, mobile-first web application built for Quaveo Chess Club. It tracks matches, schedules, results, and independent **Rapid**, **Blitz**, and **Classical** Elo ratings for club players.
+**The office chess club in your pocket.**
 
----
+Quachess is a tiny web app for colleagues who play chess over the board — at the office, over coffee, whenever two people and a board meet. The game happens in real life; Quachess takes care of everything after the last move: recording the result, updating the ratings, and keeping the friendly rivalry alive.
 
-## 🌟 Key Features
-
-- **3 Independent Ratings**: Rapid, Blitz, and Classical ratings ($K = 32$, initial rating $1200$).
-- **Deterministic Elo Engine**: Rebuilds complete rating history from match records upon result edits or cancellations.
-- **Mobile-First UX**: Responsive interface optimized for mobile viewports (375px–430px) with touch-friendly targets.
-- **Admin Dashboard**: Secure HTTP-only session cookie authentication for managing players, scheduling matches, and 1-tap result recording.
-- **Vietnam Timezone Support**: Match schedules and historical dates automatically presented in `Asia/Ho_Chi_Minh` (UTC+7).
-- **FastAPI Cloud & Container Ready**: Deployable with a single `fastapi deploy` command or via multi-stage Docker container on Cloud Run.
+Built for a small club of about ten players who get together a couple of evenings a week. Everything in the app is designed around one number: **recording a finished game takes under 10 seconds.**
 
 ---
 
-## 🛠️ Tech Stack
+## Why it exists
 
-- **Backend**: Python 3.12+, FastAPI (FastAPI CLI / `fastapi[standard]`), SQLModel (SQLAlchemy 2.x + Pydantic v2), Uvicorn, Alembic.
-- **Database**: SQLite (Local Dev zero-dependency default) & PostgreSQL / Neon (Production).
-- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS v3, Lucide Icons, `openapi-typescript` + `openapi-fetch`.
-- **Package Managers**: `uv` for ultra-fast Python management in `backend/`, `pnpm` for `frontend/`.
+Casual office chess dies in one specific way: nobody remembers to write results down. Leagues feel heavy, chess platforms feel impersonal, and a spreadsheet is a chore. Quachess makes the "paperwork" so light that it never gets skipped — and gives back a seasonal leaderboard, rivalries, and push notifications so there's always a reason to come back.
 
----
+## What's inside
 
-## 🚀 Quick Start (Local Development)
+### ⚔️ Record a result in seconds
+Tap the big **Record** button, pick your opponent (recent opponents are one tap away), press **Win / Draw / Loss** — done. Your rating change appears instantly, e.g. *+14*. Mis-tapped the wrong result? Any participant can undo it within 24 hours and ratings roll back automatically.
 
-### 1. Prerequisites
-- Python 3.12+ & [`uv`](https://docs.astral.sh/uv/)
-- Node.js v20+ & `pnpm`
+### 🏆 Seasonal leaderboards
+Each quarter is a fresh season — everyone starts at 1200, so a new joiner can top the chart within weeks instead of chasing a year of history. Prefer the long game? Switch to the all-time view. Three independent Elo ladders (Rapid, Blitz, Classical), rank medals for the podium, and skill tiers from **Wood** to **Master**.
 
-### 2. Backend Setup
-```bash
-# Sync dependencies and virtualenv in backend
-cd backend
-uv sync
+### 🤝 Challenges & head-to-head
+Send a challenge from any player's profile (with color choice), accept it from your inbox, and the match appears on your home screen waiting for a result. Every profile has a head-to-head record — because "I'm 5–2 against you" is half the fun of office chess.
 
-# Seed 10 players and historical matches
-cd ..
-make seed
+### 🔔 Push notifications
+Get a notification when someone challenges you, accepts your challenge, or records a game with your name on it. Installable as a PWA (Add to Home Screen) and works offline — recent results and rankings are readable even in the elevator.
 
-# Start backend dev server with FastAPI CLI (runs at http://localhost:8000)
-make dev
+### 🔐 Sign in the lazy way
+One tap with your Google account — no passwords to invent or forget. The club admin is simply a configured Gmail address. Classic username/password sign-in also works as a fallback, and every player can set a display name (nicknames encouraged).
+
+## How a game flows
+
+1. **Meet** — two players, a physical board, a real clock.
+2. **Play** — Rapid, Blitz, or Classical; house rules welcome.
+3. **Record** — the winner (or either player) opens Quachess and logs the result in four taps.
+4. **Talk trash** — the feed, the leaderboard shift, and the head-to-head record do the rest.
+
+## Under the hood
+
+A deliberately small stack, sized for a ten-person club:
+
+- **Backend**: FastAPI + SQLModel (async), PostgreSQL in production / SQLite in development, Redis-backed response caching, Alembic migrations, deterministic full-history Elo recalculation after every change.
+- **Frontend**: React + TypeScript + Tailwind CSS, TanStack Query, typed API client generated from the backend's OpenAPI schema, Workbox service worker for offline + Web Push.
+- **Deploy**: FastAPI Cloud, auto-deployed from `main` via GitHub Actions.
+
+## Project layout
+
 ```
-
-### 3. Frontend Setup (In a separate terminal)
-```bash
-cd frontend
-pnpm install
-pnpm run dev
-# Frontend runs at http://localhost:5173
-```
-
----
-
-## ☁️ Deploying to FastAPI Cloud (`fastapi deploy`)
-
-The backend is configured as a self-contained FastAPI Cloud project with entrypoint `main:app` in [`backend/pyproject.toml`](file:///Users/thanhpt/01-personal/chess/backend/pyproject.toml).
-
-To deploy directly to **FastAPI Cloud**:
-
-1. **Log in to FastAPI Cloud**:
-   ```bash
-   cd backend
-   uv run fastapi login
-   ```
-
-2. **Deploy the application**:
-   ```bash
-   make deploy
-   # Or manually: cd backend && uv run fastapi deploy
-   ```
-
----
-
-## 🧪 Running Automated Tests & Linting
-
-```bash
-# Run Ruff linting and formatting
-make lint
-make format
-
-# Run full Pytest backend test suite
-make test
+├── backend/    FastAPI app (API, Elo engine, seasons, push)
+├── frontend/   React SPA (also built into backend/static for deploys)
+└── .github/    CI workflow: build + deploy on push to main
 ```
 
 ---
 
-## 🐳 Docker Deployment (Google Cloud Run / Container Platforms)
-
-```bash
-# Build multi-stage Docker image
-make docker-build
-
-# Run container locally
-docker run -p 8080:8080 \
-  -e DATABASE_URL="sqlite+aiosqlite:///./chess.db" \
-  -e ADMIN_USERNAME="admin" \
-  -e ADMIN_PASSWORD="your_secure_password" \
-  -e SESSION_SECRET="your_production_secret" \
-  chess-club-app
-```
-
-Verify container health:
-```bash
-curl http://localhost:8080/health
-# Returns: {"status": "ok"}
-```
-
----
-
-## 📂 Project Structure
-
-```text
-chess/
-├── backend/                     # Self-contained Python FastAPI backend
-│   ├── pyproject.toml           # uv & FastAPI entrypoint (tool.fastapi)
-│   ├── main.py                  # Entrypoint exporting app
-│   ├── app/
-│   │   ├── main.py              # FastAPI app definition & static file router
-│   │   ├── config.py            # Settings & Env vars
-│   │   ├── database.py          # Async SQLModel engine setup
-│   │   ├── models.py            # SQLModel tables (Player, Match, RatingHistory)
-│   │   ├── schemas.py           # Pydantic request/response schemas
-│   │   ├── auth/session.py      # Signed HTTP-only session cookie auth
-│   │   ├── services/elo.py      # Pure Elo engine & deterministic recalculation
-│   │   └── api/                 # API routers (players, rankings, matches, admin)
-│   ├── generate_openapi.py      # OpenAPI schema generator
-│   ├── migrations/              # Alembic migration scripts
-│   ├── tests/                   # Pytest unit & integration tests
-│   └── seed.py                  # Database seed script
-├── frontend/                    # React TypeScript SPA
-│   ├── src/
-│   │   ├── client/              # Auto-generated OpenAPI TypeScript client types
-│   │   ├── components/          # Header, MobileNav, RatingCategorySelector, MatchCard
-│   │   ├── pages/               # RankingsPage, MatchesPage, PlayerDetailPage, Admin pages
-│   │   ├── api/client.ts        # Typed openapi-fetch client wrapper
-│   │   └── utils/formatters.ts  # Vietnam timezone & date formatters
-│   ├── package.json
-│   └── pnpm-lock.yaml
-├── Dockerfile                   # Multi-stage production build
-├── docker-compose.yml           # Optional Postgres docker-compose
-├── Makefile                     # Developer shortcuts
-└── README.md
-```
+*Named after the office it was born in. Knights before bishops.* ♞

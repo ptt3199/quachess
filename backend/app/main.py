@@ -76,7 +76,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Quaveo Chess Club Rating API",
+    title="Quachess Rating API",
     version="1.0.0",
     lifespan=lifespan,
 )

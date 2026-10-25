@@ -76,7 +76,7 @@ self.addEventListener('push', (event) => {
     payload = { body: event.data ? event.data.text() : '' };
   }
 
-  const title = payload.title || 'Quaveo Chess';
+  const title = payload.title || 'Quachess';
   const options: NotificationOptions = {
     body: payload.body || '',
     icon: '/favicon.svg',
